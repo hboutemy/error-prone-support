@@ -21,8 +21,9 @@ final class ImmutableMultisetTemplates {
   private ImmutableMultisetTemplates() {}
 
   /** Prefer {@link ImmutableMultiset#builder()} over the associated constructor. */
-  // XXX: This drops generic type information, sometimes leading to non-compilable code. Anything
-  // we can do about that?
+  // XXX: Picnic's Error Prone fork supports method invocation type argument inlining in the
+  // `@AfterTemplate`. Without using the fork, the expression in the `@AfterTemplate` can result in
+  // non-compilable code. See: https://github.com/google/error-prone/pull/2706.
   static final class ImmutableMultisetBuilder<T> {
     @BeforeTemplate
     ImmutableMultiset.Builder<T> before() {
@@ -31,7 +32,7 @@ final class ImmutableMultisetTemplates {
 
     @AfterTemplate
     ImmutableMultiset.Builder<T> after() {
-      return ImmutableMultiset.builder();
+      return ImmutableMultiset.<T>builder();
     }
   }
 

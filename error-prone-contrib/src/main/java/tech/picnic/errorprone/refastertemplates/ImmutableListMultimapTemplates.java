@@ -33,8 +33,9 @@ final class ImmutableListMultimapTemplates {
    * Prefer {@link ImmutableListMultimap#builder()} over the associated constructor on constructions
    * that produce a less-specific type.
    */
-  // XXX: This drops generic type information, sometimes leading to non-compilable code. Anything
-  // we can do about that?
+  // XXX: Picnic's Error Prone fork supports method invocation type argument inlining in the
+  // `@AfterTemplate`. Without using the fork, the expression in the `@AfterTemplate` can result in
+  // non-compilable code. See: https://github.com/google/error-prone/pull/2706.
   static final class ImmutableListMultimapBuilder<K, V> {
     @BeforeTemplate
     ImmutableMultimap.Builder<K, V> before() {
@@ -46,7 +47,7 @@ final class ImmutableListMultimapTemplates {
 
     @AfterTemplate
     ImmutableListMultimap.Builder<K, V> after() {
-      return ImmutableListMultimap.builder();
+      return ImmutableListMultimap.<K, V>builder();
     }
   }
 
