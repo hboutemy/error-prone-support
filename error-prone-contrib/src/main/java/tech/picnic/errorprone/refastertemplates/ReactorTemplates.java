@@ -42,6 +42,22 @@ final class ReactorTemplates {
       return Mono.defer(() -> Mono.justOrEmpty(optional));
     }
   }
+  // XXX: Fix this after knowing how to add Matches for CanBeCoercedToRunnable.
+  //
+  //  abstract static class MonoFromRunnable<T> {
+  //    @Placeholder
+  //    abstract boolean test(); // Improve return type here and naming of method.
+  //
+  //    @BeforeTemplate
+  //    Mono<Void> before(Supplier<T> supplier) {
+  //      return Mono.fromSupplier(() -> test()).then();
+  //    }
+  //
+  //    @AfterTemplate
+  //    Mono<Void> after(Runnable supplier) {
+  //      return Mono.fromRunnable(supplier);
+  //    }
+  //  }
 
   /** Don't unnecessarily defer {@link Mono#error(Throwable)}. */
   static final class MonoDeferredError<T> {
