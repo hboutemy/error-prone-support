@@ -33,10 +33,8 @@ final class CollectionTemplates {
     @BeforeTemplate
     boolean before(Collection<T> collection) {
       return Refaster.anyOf(
-          collection.size() == 0,
-          collection.size() <= 0,
-          collection.size() < 1,
-          Iterables.isEmpty(collection));
+          //          collection.size() == 0,
+          collection.size() <= 0, collection.size() < 1, Iterables.isEmpty(collection));
     }
 
     @BeforeTemplate

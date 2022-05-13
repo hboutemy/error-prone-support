@@ -21,15 +21,7 @@ final class StringTemplatesTest implements RefasterTemplateTestCase {
         Arrays.class, Joiner.class, Stream.class, Streams.class, joining(), UTF_8);
   }
 
-  ImmutableSet<Boolean> testStringIsEmpty() {
-    return ImmutableSet.of(
-        "foo".isEmpty(),
-        "bar".isEmpty(),
-        "baz".isEmpty(),
-        !"foo".isEmpty(),
-        !"bar".isEmpty(),
-        !"baz".isEmpty());
-  }
+  // XXX: Add tests here:
 
   ImmutableSet<Boolean> testStringIsNullOrEmpty() {
     return ImmutableSet.of(

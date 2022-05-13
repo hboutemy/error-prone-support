@@ -3,6 +3,8 @@ package tech.picnic.errorprone.bugpatterns;
 import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.BugCheckerRefactoringTestHelper.TestMode;
 import com.google.errorprone.CompilationTestHelper;
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public final class EmptyMethodCheckTest {
@@ -25,44 +27,8 @@ public final class EmptyMethodCheckTest {
             "    System.out.println(42);",
             "  }",
             "",
-            "  void m3() {}",
-            "",
-            "  // BUG: Diagnostic contains:",
-            "  static void m4() {}",
-            "",
-            "  interface F {",
-            "    void fun();",
-            "  }",
-            "",
-            "  final class MyTestClass {",
-            "    void helperMethod() {}",
-            "  }",
-            "}")
-        .addSourceLines(
-            "B.java",
-            "import org.aspectj.lang.annotation.Pointcut;",
-            "",
-            "final class B implements A.F {",
-            "  @Override",
-            "  public void fun() {}",
-            "",
             "  // BUG: Diagnostic contains:",
             "  void m3() {}",
-            "",
-            "  /** Javadoc. */",
-            "  // BUG: Diagnostic contains:",
-            "  void m4() {}",
-            "",
-            "  void m5() {",
-            "    // Single-line comment.",
-            "  }",
-            "",
-            "  void m6() {",
-            "    /* Multi-line comment. */",
-            "  }",
-            "",
-            "  @Pointcut",
-            "  void m7() {}",
             "}")
         .doTest();
   }
@@ -79,5 +45,23 @@ public final class EmptyMethodCheckTest {
             "}")
         .addOutputLines("out/A.java", "final class A {}")
         .doTest(TestMode.TEXT_MATCH);
+  }
+
+  @Test
+  @Disabled("TODO: Implement this")
+  void override() {
+    compilationTestHelper
+        .addSourceLines(
+            "A.java",
+            "interface A {", //
+            "  void example();",
+            "}")
+        .addSourceLines(
+            "B.java",
+            "class B implements A {", //
+            "  @Override",
+            "  public void example() {}",
+            "}")
+        .doTest();
   }
 }

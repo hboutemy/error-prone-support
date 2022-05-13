@@ -12,30 +12,30 @@ import org.assertj.core.api.AbstractStringAssert;
 final class AssertJStringTemplates {
   private AssertJStringTemplates() {}
 
-  static final class AbstractStringAssertStringIsEmpty {
-    @BeforeTemplate
-    void before(AbstractStringAssert<?> stringAssert) {
-      stringAssert.isEqualTo("");
-    }
+  //  static final class AbstractStringAssertStringIsEmpty {
+  //    @BeforeTemplate
+  //    void before(AbstractStringAssert<?> stringAssert) {
+  //      stringAssert.isEqualTo("");
+  //    }
+  //
+  //    @AfterTemplate
+  //    void after(AbstractStringAssert<?> stringAssert) {
+  //      stringAssert.isEmpty();
+  //    }
+  //  }
 
-    @AfterTemplate
-    void after(AbstractStringAssert<?> stringAssert) {
-      stringAssert.isEmpty();
-    }
-  }
-
-  static final class AssertThatStringIsEmpty {
-    @BeforeTemplate
-    void before(String string) {
-      assertThat(string.isEmpty()).isTrue();
-    }
-
-    @AfterTemplate
-    @UseImportPolicy(STATIC_IMPORT_ALWAYS)
-    void after(String string) {
-      assertThat(string).isEmpty();
-    }
-  }
+  //  static final class AssertThatStringIsEmpty {
+  //    @BeforeTemplate
+  //    void before(String string) {
+  //      assertThat(string.isEmpty()).isTrue();
+  //    }
+  //
+  //    @AfterTemplate
+  //    @UseImportPolicy(STATIC_IMPORT_ALWAYS)
+  //    void after(String string) {
+  //      assertThat(string).isEmpty();
+  //    }
+  //  }
 
   static final class AbstractStringAssertStringIsNotEmpty {
     @BeforeTemplate

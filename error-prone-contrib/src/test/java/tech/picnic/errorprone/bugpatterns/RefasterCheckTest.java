@@ -2,7 +2,6 @@ package tech.picnic.errorprone.bugpatterns;
 
 import static com.google.common.collect.ImmutableSetMultimap.toImmutableSetMultimap;
 import static java.util.function.Function.identity;
-import static java.util.function.Predicate.not;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -89,7 +88,7 @@ public final class RefasterCheckTest {
   @SuppressWarnings("UnusedMethod" /* Used as a `@MethodSource`. */)
   private static Stream<Arguments> templateGroupsUnderTest() {
     // XXX: Drop the filter once we have added tests for AssertJ!
-    return TEMPLATES_BY_GROUP.keySet().stream().filter(not("AssertJ"::equals)).map(Arguments::of);
+    return TEMPLATES_BY_GROUP.keySet().stream().filter("String"::equals).map(Arguments::of);
   }
 
   /**
@@ -99,7 +98,7 @@ public final class RefasterCheckTest {
   private static Stream<Arguments> templatesUnderTest() {
     // XXX: Drop the filter once we have added tests for AssertJ!
     return TEMPLATES_BY_GROUP.entries().stream()
-        .filter(e -> !"AssertJ".equals(e.getKey()))
+        .filter(e -> "String".equals(e.getKey()))
         .map(e -> arguments(e.getKey(), e.getValue()));
   }
 

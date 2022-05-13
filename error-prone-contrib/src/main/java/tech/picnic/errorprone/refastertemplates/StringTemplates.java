@@ -17,22 +17,24 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 /** Refaster templates related to expressions dealing with {@link String}s. */
-// XXX: Should we prefer `s -> !s.isEmpty()` or `not(String::isEmpty)`?
 final class StringTemplates {
   private StringTemplates() {}
 
-  /** Prefer {@link String#isEmpty()} over alternatives that consult the string's length. */
+  /*
+   * Code that we aim to rewrite:
+   * ---------------------------------
+   * class Demo {
+   *   public void main(String example) {
+   *     if ("".length() == 0) {
+   *       System.out.println("String is empty");
+   *     }
+   *     boolean isEmpty = example.equals("");
+   *   }
+   * }
+   * ----------------------------------
+   */
   static final class StringIsEmpty {
-    @BeforeTemplate
-    boolean before(String str) {
-      return Refaster.anyOf(str.length() == 0, str.length() <= 0, str.length() < 1);
-    }
-
-    @AfterTemplate
-    @AlsoNegation
-    boolean after(String str) {
-      return str.isEmpty();
-    }
+    // XXX: Add Refaster template here.
   }
 
   /** Prefer {@link Strings#isNullOrEmpty(String)} over the more verbose alternative. */
@@ -50,7 +52,6 @@ final class StringTemplates {
   }
 
   /** Don't use the ternary operator to create an optionally-absent string. */
-  // XXX: This is a special case of `TernaryOperatorOptionalNegativeFiltering`.
   static final class OptionalNonEmptyString {
     @BeforeTemplate
     Optional<String> before(String str) {

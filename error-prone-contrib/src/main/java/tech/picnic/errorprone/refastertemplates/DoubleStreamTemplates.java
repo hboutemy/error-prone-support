@@ -144,10 +144,8 @@ final class DoubleStreamTemplates {
     @BeforeTemplate
     boolean before(DoubleStream stream) {
       return Refaster.anyOf(
-          stream.count() == 0,
-          stream.count() <= 0,
-          stream.count() < 1,
-          stream.findFirst().isEmpty());
+          //          stream.count() == 0,
+          stream.count() <= 0, stream.count() < 1, stream.findFirst().isEmpty());
     }
 
     @AfterTemplate
