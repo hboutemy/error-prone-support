@@ -70,6 +70,19 @@ final class CollectionTemplates {
     }
   }
 
+  /** Prefer {@link Collection#contains(Object)} over more contrived alternatives. */
+  static final class CollectionContains<T, S> {
+    @BeforeTemplate
+    boolean before(Collection<T> collection, S value) {
+      return collection.stream().anyMatch(value::equals);
+    }
+
+    @AfterTemplate
+    boolean after(Collection<T> collection, S value) {
+      return collection.contains(value);
+    }
+  }
+
   /**
    * Don't call {@link Iterables#addAll(Collection, Iterable)} when the elements to be added are
    * already part of a {@link Collection}.

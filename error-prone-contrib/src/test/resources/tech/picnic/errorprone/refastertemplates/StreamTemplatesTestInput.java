@@ -130,4 +130,8 @@ final class StreamTemplatesTest implements RefasterTemplateTestCase {
   boolean testStreamAllMatch2() {
     return Stream.of("foo").noneMatch(s -> !s.isBlank());
   }
+
+  Stream<Integer> testStreamIterate() {
+    return Stream.iterate(0, i -> i + 1).takeWhile(i -> i < 10);
+  }
 }

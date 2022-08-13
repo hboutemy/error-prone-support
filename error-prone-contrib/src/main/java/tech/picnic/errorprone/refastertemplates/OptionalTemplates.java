@@ -91,6 +91,20 @@ final class OptionalTemplates {
     }
   }
 
+  /** Prefer {@link Optional#equals(Object)}} over more contrived alternatives. */
+  static final class OptionalHasValue<T, S> {
+    @BeforeTemplate
+    boolean before(Optional<T> optional, S value) {
+      return Refaster.anyOf(
+          optional.filter(value::equals).isPresent(), optional.stream().anyMatch(value::equals));
+    }
+
+    @AfterTemplate
+    boolean after(Optional<T> optional, S value) {
+      return optional.equals(Optional.of(value));
+    }
+  }
+
   /**
    * Don't use the ternary operator to extract the first element of a possibly-empty {@link
    * Iterator} as an {@link Optional}.
@@ -323,7 +337,8 @@ final class OptionalTemplates {
       return Refaster.anyOf(
           optional1.map(Optional::of).orElse(optional2),
           optional1.map(Optional::of).orElseGet(() -> optional2),
-          Stream.of(optional1, optional2).flatMap(Optional::stream).findFirst());
+          Stream.of(optional1, optional2).flatMap(Optional::stream).findFirst(),
+          optional1.isPresent() ? optional1 : optional2);
     }
 
     @AfterTemplate

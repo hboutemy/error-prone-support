@@ -36,6 +36,10 @@ final class CollectionTemplatesTest implements RefasterTemplateTestCase {
     return ImmutableSet.of(Iterables.size(ImmutableSet.of(1)), ImmutableSet.of(2).asList().size());
   }
 
+  boolean testCollectionContains() {
+    return ImmutableSet.of("foo").stream().anyMatch("bar"::equals);
+  }
+
   boolean testCollectionAddAllToCollectionExpression() {
     return Iterables.addAll(new ArrayList<>(), ImmutableSet.of("foo"));
   }

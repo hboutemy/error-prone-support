@@ -35,6 +35,12 @@ final class OptionalTemplatesTest implements RefasterTemplateTestCase {
     return Optional::get;
   }
 
+  ImmutableSet<Boolean> testOptionalHasValue() {
+    return ImmutableSet.of(
+        Optional.of("foo").filter("bar"::equals).isPresent(),
+        Optional.of("baz").stream().anyMatch("qux"::equals));
+  }
+
   ImmutableSet<Optional<String>> testOptionalFirstIteratorElement() {
     return ImmutableSet.of(
         ImmutableSet.of("foo").iterator().hasNext()
@@ -99,6 +105,7 @@ final class OptionalTemplatesTest implements RefasterTemplateTestCase {
     return ImmutableSet.of(
         Optional.of("foo").map(Optional::of).orElse(Optional.of("bar")),
         Optional.of("baz").map(Optional::of).orElseGet(() -> Optional.of("qux")),
-        Stream.of(Optional.of("quux"), Optional.of("quuz")).flatMap(Optional::stream).findFirst());
+        Stream.of(Optional.of("quux"), Optional.of("quuz")).flatMap(Optional::stream).findFirst(),
+        Optional.of("corge").isPresent() ? Optional.of("corge") : Optional.of("grault"));
   }
 }
