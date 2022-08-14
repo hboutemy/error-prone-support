@@ -5,11 +5,14 @@ import static com.google.errorprone.BugPattern.SeverityLevel.SUGGESTION;
 import static com.google.errorprone.BugPattern.StandardTags.STYLE;
 import static com.google.errorprone.matchers.Matchers.anyOf;
 import static com.google.errorprone.matchers.Matchers.instanceMethod;
+import static com.sun.tools.javac.util.Position.NOPOS;
 import static java.util.stream.Collectors.joining;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.errorprone.BugPattern;
+import com.google.errorprone.ErrorProneFlags;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.MethodInvocationTreeMatcher;
@@ -25,9 +28,9 @@ import com.google.googlejavaformat.java.RemoveUnusedImports;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.util.Position;
 import java.util.List;
 import java.util.Optional;
+import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 
 /**
  * A {@link BugChecker} which flags improperly formatted Error Prone test code.
@@ -43,19 +46,24 @@ import java.util.Optional;
  * are not able to) remove imports that become obsolete as a result of applying their suggested
  * fix(es).
  */
-// XXX: Once we target JDK 17 (optionally?) suggest text block fixes.
+// XXX: The check does not flag well-formatted text blocks with insufficient indentation. Cover this
+// using an generic check.
 // XXX: GJF guesses the line separator to be used by inspecting the source. When using text blocks
 // this may cause the current unconditional use of `\n` not to be sufficient when building on
 // Windows; TBD.
 @AutoService(BugChecker.class)
 @BugPattern(
-    summary = "Test code should follow the Google Java style",
+    summary =
+        "Test code should follow the Google Java style (and when targeting JDK 15+ be "
+            + "specified using a single text block)",
     linkType = NONE,
     severity = SUGGESTION,
     tags = STYLE)
 public final class ErrorProneTestHelperSourceFormat extends BugChecker
     implements MethodInvocationTreeMatcher {
   private static final long serialVersionUID = 1L;
+  private static final String FLAG_AVOID_TEXT_BLOCKS =
+      "ErrorProneTestHelperSourceFormat:AvoidTextBlocks";
   private static final Formatter FORMATTER = new Formatter();
   private static final Matcher<ExpressionTree> INPUT_SOURCE_ACCEPTING_METHOD =
       anyOf(
@@ -69,6 +77,25 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
       instanceMethod()
           .onDescendantOf("com.google.errorprone.BugCheckerRefactoringTestHelper.ExpectOutput")
           .named("addOutputLines");
+  // XXX: Proper name for this?
+  private static final String TEXT_BLOCK_MARKER = "\"\"\"";
+  private static final String DEFAULT_TEXT_BLOCK_INDENTATION = " ".repeat(12);
+
+  private final boolean avoidTextBlocks;
+
+  /** Instantiates the default {@link ErrorProneTestHelperSourceFormat}. */
+  public ErrorProneTestHelperSourceFormat() {
+    this(ErrorProneFlags.empty());
+  }
+
+  /**
+   * Instantiates a customized {@link ErrorProneTestHelperSourceFormat}.
+   *
+   * @param flags Any provided command line flags.
+   */
+  public ErrorProneTestHelperSourceFormat(ErrorProneFlags flags) {
+    avoidTextBlocks = flags.getBoolean(FLAG_AVOID_TEXT_BLOCKS).orElse(Boolean.FALSE);
+  }
 
   @Override
   public Description matchMethodInvocation(MethodInvocationTree tree, VisitorState state) {
@@ -83,53 +110,127 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
       return buildDescription(tree).setMessage("No source code provided").build();
     }
 
-    int startPos = ASTHelpers.getStartPosition(sourceLines.get(0));
-    int endPos = state.getEndPosition(sourceLines.get(sourceLines.size() - 1));
-
     /* Attempt to format the source code only if it fully consists of constant expressions. */
     return getConstantSourceCode(sourceLines)
-        .map(source -> flagFormattingIssues(startPos, endPos, source, isOutputSource, state))
+        .map(source -> flagFormattingIssues(sourceLines, source, isOutputSource, state))
         .orElse(Description.NO_MATCH);
   }
 
   private Description flagFormattingIssues(
-      int startPos, int endPos, String source, boolean retainUnusedImports, VisitorState state) {
-    Tree methodInvocation = state.getPath().getLeaf();
+      List<? extends ExpressionTree> sourceLines,
+      String source,
+      boolean retainUnusedImports,
+      VisitorState state) {
+    MethodInvocationTree methodInvocation = (MethodInvocationTree) state.getPath().getLeaf();
 
     String formatted;
     try {
-      formatted = formatSourceCode(source, retainUnusedImports).trim();
+      String gjfResult = formatSourceCode(source, retainUnusedImports);
+      formatted = canUseTextBlocks(state) ? gjfResult : gjfResult.stripTrailing();
     } catch (FormatterException e) {
       return buildDescription(methodInvocation)
           .setMessage(String.format("Source code is malformed: %s", e.getMessage()))
           .build();
     }
 
-    if (source.trim().equals(formatted)) {
+    boolean isFormatted = source.equals(formatted);
+    boolean hasStringLiteralMismatch = shouldUpdateStringLiteralFormat(sourceLines, state);
+
+    if (isFormatted && !hasStringLiteralMismatch) {
       return Description.NO_MATCH;
     }
 
-    if (startPos == Position.NOPOS || endPos == Position.NOPOS) {
-      /*
-       * We have insufficient source information to emit a fix, so we only flag the fact that the
-       * code isn't properly formatted.
-       */
-      return describeMatch(methodInvocation);
-    }
+    int startPos = ASTHelpers.getStartPosition(sourceLines.get(0));
+    int endPos = state.getEndPosition(sourceLines.get(sourceLines.size() - 1));
+    boolean hasNewlineMismatch =
+        !isFormatted && source.stripTrailing().equals(formatted.stripTrailing());
 
     /*
-     * The code isn't properly formatted; replace all lines with the properly formatted
-     * alternatives.
+     * The source code is not properly formatted and/or not specified using a single text block.
+     * Report the more salient of the violations, and suggest a fix if sufficient source information
+     * is available.
      */
-    return describeMatch(
-        methodInvocation,
-        SuggestedFix.replace(
-            startPos,
-            endPos,
-            Splitter.on('\n')
-                .splitToStream(formatted)
-                .map(state::getConstantExpression)
-                .collect(joining(", "))));
+    return buildDescription(methodInvocation)
+        .setMessage(
+            isFormatted || (hasNewlineMismatch && hasStringLiteralMismatch)
+                ? String.format(
+                    "Test code should %sbe specified using a single text block",
+                    avoidTextBlocks ? "not " : "")
+                : String.format(
+                    "Test code should follow the Google Java style%s",
+                    hasNewlineMismatch ? " (pay attention to trailing newlines)" : ""))
+        .addFix(
+            (startPos == NOPOS || endPos == NOPOS)
+                ? SuggestedFix.emptyFix()
+                : SuggestedFix.replace(
+                    startPos,
+                    endPos,
+                    canUseTextBlocks(state)
+                        ? toTextBlockExpression(methodInvocation, formatted, state)
+                        : toLineEnumeration(formatted, state)))
+        .build();
+  }
+
+  private boolean shouldUpdateStringLiteralFormat(
+      List<? extends ExpressionTree> sourceLines, VisitorState state) {
+    return canUseTextBlocks(state)
+        ? sourceLines.size() > 1 || !SourceCode.isTextBlock(sourceLines.get(0), state)
+        : sourceLines.stream().anyMatch(tree -> SourceCode.isTextBlock(tree, state));
+  }
+
+  private boolean canUseTextBlocks(VisitorState state) {
+    return !avoidTextBlocks && SourceCode.isTextBlockSupported(state);
+  }
+
+  private static String toTextBlockExpression(
+      MethodInvocationTree tree, String source, VisitorState state) {
+    String indentation = suggestTextBlockIndentation(tree, state);
+
+    // XXX: Verify trailing """ on new line.
+    return TEXT_BLOCK_MARKER
+        + '\n'
+        + indentation
+        + source
+            .replace("\n", '\n' + indentation)
+            .replace("\\", "\\\\")
+            .replace(TEXT_BLOCK_MARKER, "\"\"\\\"")
+        + TEXT_BLOCK_MARKER;
+  }
+
+  private static String toLineEnumeration(String source, VisitorState state) {
+    return Splitter.on('\n')
+        .splitToStream(source)
+        .map(state::getConstantExpression)
+        .collect(joining(", "));
+  }
+
+  private static String suggestTextBlockIndentation(
+      MethodInvocationTree target, VisitorState state) {
+    CharSequence sourceCode = state.getSourceCode();
+    if (sourceCode == null) {
+      return DEFAULT_TEXT_BLOCK_INDENTATION;
+    }
+
+    String source = sourceCode.toString();
+    return getIndentation(target.getArguments().get(1), source)
+        .or(() -> getIndentation(target.getArguments().get(0), source))
+        .or(() -> getIndentation(target.getMethodSelect(), source))
+        .orElse(DEFAULT_TEXT_BLOCK_INDENTATION);
+  }
+
+  private static Optional<String> getIndentation(Tree tree, String source) {
+    int startPos = ASTHelpers.getStartPosition(tree);
+    if (startPos == NOPOS) {
+      return Optional.empty();
+    }
+
+    int finalNewLine = source.lastIndexOf('\n', startPos);
+    if (finalNewLine < 0) {
+      return Optional.empty();
+    }
+
+    return Optional.of(source.substring(finalNewLine + 1, startPos))
+        .filter(CharMatcher.whitespace()::matchesAllOf);
   }
 
   private static String formatSourceCode(String source, boolean retainUnusedImports)
@@ -147,12 +248,16 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
     StringBuilder source = new StringBuilder();
 
     for (ExpressionTree sourceLine : sourceLines) {
+      if (!source.isEmpty()) {
+        source.append('\n');
+      }
+
       Object value = ASTHelpers.constValue(sourceLine);
       if (value == null) {
         return Optional.empty();
       }
 
-      source.append(value).append('\n');
+      source.append(value);
     }
 
     return Optional.of(source.toString());
