@@ -149,6 +149,7 @@
         <version.error-prone-slf4j>0.1.15</version.error-prone-slf4j>
         <version.guava-beta-checker>1.0</version.guava-beta-checker>
         <version.jdk>11</version.jdk>
+        <version.jdk.test>17</version.jdk.test>
         <version.maven>3.8.6</version.maven>
         <version.mockito>4.8.0</version.mockito>
         <version.nopen-checker>1.0.1</version.nopen-checker>
@@ -857,6 +858,8 @@
                         <parameters>true</parameters>
                         <source>${version.jdk}</source>
                         <target>${version.jdk}</target>
+                        <testSource>${version.jdk.test}</testSource>
+                        <testTarget>${version.jdk.test}</testTarget>
                         <!-- Erroneously inverted logic... for details, see
                         https://issues.apache.org/jira/browse/MCOMPILER-209. -->
                         <useIncrementalCompilation>false</useIncrementalCompilation>
@@ -900,7 +903,7 @@
                                 <includes>src/main/resources/**/*.properties,src/test/resources/**/*.properties</includes>
                             </requireEncoding>
                             <requireJavaVersion>
-                                <version>${version.jdk}</version>
+                                <version>${version.jdk.test}</version>
                             </requireJavaVersion>
                             <requireMavenVersion>
                                 <version>${version.maven}</version>
@@ -1738,6 +1741,33 @@
                     </plugin>
                     <?SORTPOM RESUME?>
                 </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- This profile is active when the project is loaded into
+            IntelliJ IDEA. Drop it once IDEA properly supports the `testSource`
+            and `testTarget` settings of the `maven-compiler-plugin`, such that
+            specifying different language levels for main and test code works
+            out of the box. See
+            https://youtrack.jetbrains.com/issue/IDEA-85478. -->
+            <id>idea</id>
+            <activation>
+                <property>
+                    <name>idea.maven.embedder.version</name>
+                </property>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-compiler-plugin</artifactId>
+                            <configuration>
+                                <release>${version.jdk.test}</release>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
             </build>
         </profile>
     </profiles>
