@@ -17,22 +17,24 @@ final class AssertJIsNullTest {
     compilationTestHelper
         .addSourceLines(
             "A.java",
-            "import static org.assertj.core.api.Assertions.assertThat;",
-            "",
-            "class A {",
-            "  void m() {",
-            "    assertThat(1).isEqualTo(1);",
-            "    // BUG: Diagnostic contains:",
-            "    assertThat(1).isEqualTo(null);",
-            "    // BUG: Diagnostic contains:",
-            "    assertThat(\"foo\").isEqualTo(null);",
-            "    isEqualTo(null);",
-            "  }",
-            "",
-            "  private boolean isEqualTo(Object value) {",
-            "    return value.equals(\"bar\");",
-            "  }",
-            "}")
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            class A {
+              void m() {
+                assertThat(1).isEqualTo(1);
+                // BUG: Diagnostic contains:
+                assertThat(1).isEqualTo(null);
+                // BUG: Diagnostic contains:
+                assertThat("foo").isEqualTo(null);
+                isEqualTo(null);
+              }
+
+              private boolean isEqualTo(Object value) {
+                return value.equals("bar");
+              }
+            }
+            """)
         .doTest();
   }
 
@@ -41,24 +43,28 @@ final class AssertJIsNullTest {
     refactoringTestHelper
         .addInputLines(
             "A.java",
-            "import static org.assertj.core.api.Assertions.assertThat;",
-            "",
-            "class A {",
-            "  void m() {",
-            "    assertThat(1).isEqualTo(null);",
-            "    assertThat(\"foo\").isEqualTo(null);",
-            "  }",
-            "}")
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            class A {
+              void m() {
+                assertThat(1).isEqualTo(null);
+                assertThat("foo").isEqualTo(null);
+              }
+            }
+            """)
         .addOutputLines(
             "A.java",
-            "import static org.assertj.core.api.Assertions.assertThat;",
-            "",
-            "class A {",
-            "  void m() {",
-            "    assertThat(1).isNull();",
-            "    assertThat(\"foo\").isNull();",
-            "  }",
-            "}")
+            """
+            import static org.assertj.core.api.Assertions.assertThat;
+
+            class A {
+              void m() {
+                assertThat(1).isNull();
+                assertThat("foo").isNull();
+              }
+            }
+            """)
         .doTest(TEXT_MATCH);
   }
 }
