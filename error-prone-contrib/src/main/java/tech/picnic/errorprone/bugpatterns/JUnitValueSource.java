@@ -102,9 +102,10 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     Optional<MethodInvocationTree> methodInvocationTree =
         getMethodSourceMethod(methodSourceAnnotation, state)
             .flatMap(JUnitValueSource::getReturnTree)
+            .map(ReturnTree::getExpression)
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .filter(rt -> !isSimpleStream(rt));
+            .filter(JUnitValueSource::isSimpleStream);
 
     if (methodInvocationTree.isEmpty()) {
       return Optional.empty();
