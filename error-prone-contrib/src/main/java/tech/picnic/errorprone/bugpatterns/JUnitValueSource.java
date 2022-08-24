@@ -6,8 +6,6 @@ import static com.google.errorprone.BugPattern.SeverityLevel.SUGGESTION;
 import static com.google.errorprone.BugPattern.StandardTags.SIMPLIFICATION;
 import static com.google.errorprone.matchers.Matchers.isType;
 import static com.sun.source.tree.Tree.Kind.MEMBER_SELECT;
-import static com.sun.source.tree.Tree.Kind.METHOD;
-import static com.sun.source.tree.Tree.Kind.RETURN;
 import static java.util.stream.Collectors.joining;
 
 import com.google.auto.service.AutoService;
@@ -30,7 +28,7 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
-import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import java.util.Optional;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 
@@ -41,13 +39,14 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
  */
 @AutoService(BugChecker.class)
 @BugPattern(
-    summary = "JUnit parameter provider can likely be improved",
+    summary =
+        "Prefer `@ValueSource` over a `@MethodSource` with arguments containing a single argument",
     linkType = NONE,
     severity = SUGGESTION,
     tags = SIMPLIFICATION)
 public final class JUnitValueSource extends BugChecker implements MethodTreeMatcher {
   private static final long serialVersionUID = 1L;
-  private static final ImmutableMap<String, String> VALID_PARAMETER_TYPES =
+  private static final ImmutableMap<String, String> METHOD_SOURCE_PARAMETER_TYPES =
       ImmutableMap.<String, String>builder()
           .put("boolean", "booleans")
           .put("byte", "bytes")
@@ -68,13 +67,13 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
           .put("long", "longs")
           .put("short", "shorts")
           .build();
-  private static final Matcher<AnnotationTree> METHOD_SOURCE =
+  private static final Matcher<AnnotationTree> METHOD_SOURCE_ANNOTATION =
       isType("org.junit.jupiter.params.provider.MethodSource");
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     return ASTHelpers.getAnnotations(tree).stream()
-        .filter(annotation -> METHOD_SOURCE.matches(annotation, state))
+        .filter(annotation -> METHOD_SOURCE_ANNOTATION.matches(annotation, state))
         .findFirst()
         .flatMap(annotation -> tryValueSourceFix(tree, annotation, state))
         .orElse(Description.NO_MATCH);
@@ -92,7 +91,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     }
 
     return Optional.ofNullable(ASTHelpers.getType(tree.getParameters().get(0)))
-        .map(type -> VALID_PARAMETER_TYPES.get(type.tsym.getQualifiedName().toString()));
+        .map(type -> METHOD_SOURCE_PARAMETER_TYPES.get(type.tsym.getQualifiedName().toString()));
   }
 
   private Optional<Description> tryConstructValueSourceFix(
@@ -100,23 +99,19 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       String parameterType,
       AnnotationTree methodSourceAnnotation,
       VisitorState state) {
-    MethodTree methodSourceTree = getMethodSourceMethod(methodSourceAnnotation, state).orElse(null);
-    if (methodSourceTree == null) {
-      return Optional.empty();
-    }
+    Optional<MethodInvocationTree> methodInvocationTree =
+        getMethodSourceMethod(methodSourceAnnotation, state)
+            .flatMap(JUnitValueSource::getReturnTree)
+            .filter(MethodInvocationTree.class::isInstance)
+            .map(MethodInvocationTree.class::cast)
+            .filter(rt -> !isSimpleStream(rt));
 
-    ReturnTree returnTree = getReturnTree(methodSourceTree).orElse(null);
-    if (returnTree == null) {
-      return Optional.empty();
-    }
-
-    MethodInvocationTree invocationTree = ((MethodInvocationTree) returnTree.getExpression());
-    if (!isSimpleStream(invocationTree)) {
+    if (methodInvocationTree.isEmpty()) {
       return Optional.empty();
     }
 
     ImmutableList<String> arguments =
-        invocationTree.getArguments().stream()
+        methodInvocationTree.orElseThrow().getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
             .map(invocation -> collectValues(invocation, state))
@@ -135,9 +130,9 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                 .build()));
   }
 
-  private static Optional<ReturnTree> getReturnTree(MethodTree methodSourceTree) {
-    return methodSourceTree.getBody().getStatements().stream()
-        .filter(statement -> statement.getKind() == RETURN)
+  private static Optional<ReturnTree> getReturnTree(MethodTree methodTree) {
+    return methodTree.getBody().getStatements().stream()
+        .filter(ReturnTree.class::isInstance)
         .findFirst()
         .map(ReturnTree.class::cast);
   }
@@ -155,20 +150,16 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       return Optional.empty();
     }
 
-    String methodSourceMethodName =
+    Optional<String> methodSourceMethodName =
         Optional.ofNullable(AnnotationMatcherUtils.getArgument(annotation, "value"))
-            .filter(expression -> expression.getKind() == Tree.Kind.STRING_LITERAL)
-            .map(literal -> ((LiteralTree) literal).getValue().toString())
-            .orElse(null);
-    if (methodSourceMethodName == null) {
-      return Optional.empty();
-    }
+            .filter(expression -> expression.getKind() == Kind.STRING_LITERAL)
+            .map(literal -> ((LiteralTree) literal).getValue().toString());
 
     return classTree.getMembers().stream()
-        .filter(member -> member.getKind() == METHOD)
-        .filter(method -> ((MethodTree) method).getName().contentEquals(methodSourceMethodName))
-        .findFirst()
-        .map(MethodTree.class::cast);
+        .filter(MethodTree.class::isInstance)
+        .map(MethodTree.class::cast)
+        .filter(method -> method.getName().contentEquals(methodSourceMethodName.orElseThrow()))
+        .findFirst();
   }
 
   private static String collectValues(MethodInvocationTree tree, VisitorState state) {
