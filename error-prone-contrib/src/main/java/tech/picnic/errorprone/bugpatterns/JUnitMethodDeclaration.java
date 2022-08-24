@@ -13,6 +13,7 @@ import static com.google.errorprone.matchers.Matchers.isType;
 import static java.util.function.Predicate.not;
 import static tech.picnic.errorprone.bugpatterns.util.Documentation.BUG_PATTERNS_BASE_URL;
 import static tech.picnic.errorprone.bugpatterns.util.JavaKeywords.isReservedKeyword;
+import static tech.picnic.errorprone.bugpatterns.util.MoreMatchers.hasMetaAnnotation;
 
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
@@ -26,14 +27,12 @@ import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.matchers.Matchers;
 import com.google.errorprone.matchers.MultiMatcher;
-import com.google.errorprone.predicates.TypePredicate;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.code.Symbol;
 import java.util.Optional;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
@@ -187,19 +186,5 @@ public final class JUnitMethodDeclaration extends BugChecker implements MethodTr
         .filter(not(String::isEmpty))
         .map(name -> Character.toLowerCase(name.charAt(0)) + name.substring(1))
         .filter(name -> !Character.isDigit(name.charAt(0)));
-  }
-
-  // XXX: Move to a `MoreMatchers` utility class.
-  private static Matcher<AnnotationTree> hasMetaAnnotation(String annotationClassName) {
-    TypePredicate typePredicate = hasAnnotation(annotationClassName);
-    return (tree, state) -> {
-      Symbol sym = ASTHelpers.getSymbol(tree);
-      return sym != null && typePredicate.apply(sym.type, state);
-    };
-  }
-
-  // XXX: Move to a `MoreTypePredicates` utility class.
-  private static TypePredicate hasAnnotation(String annotationClassName) {
-    return (type, state) -> ASTHelpers.hasAnnotation(type.tsym, annotationClassName, state);
   }
 }
