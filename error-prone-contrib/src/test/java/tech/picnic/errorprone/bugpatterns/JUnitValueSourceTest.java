@@ -39,7 +39,7 @@ final class JUnitValueSourceTest {
   }
 
   @Test
-  void identificationByte() {
+  void identificationDontFlagMultipleParameters() {
     compilationTestHelper
         .addSourceLines(
             "A.java",
@@ -54,13 +54,14 @@ final class JUnitValueSourceTest {
             "class A {",
             "  @ParameterizedTest",
             "  @MethodSource(\"fooProvider\")",
-            "  // BUG: Diagnostic contains:",
-            "  void foo(byte first) {",
+            "  void foo(int first, int second) {",
             "    assertThat(first).isNotNull();",
             "  }",
             "",
             "  private static Stream<Arguments> fooProvider() {",
-            "    return Stream.of(arguments((byte) 0), arguments((byte) 1));",
+            "    return Stream.of(",
+            "      arguments(1, 2),",
+            "      arguments(3, 4));",
             "  }",
             "}")
         .doTest();
