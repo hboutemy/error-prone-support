@@ -28,7 +28,6 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
-import com.sun.source.tree.Tree.Kind;
 import java.util.Optional;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 
@@ -99,8 +98,10 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       String parameterType,
       AnnotationTree methodSourceAnnotation,
       VisitorState state) {
+    Optional<MethodTree> methodSourceMethod = getMethodSourceMethod(methodSourceAnnotation, state);
+
     Optional<MethodInvocationTree> methodInvocationTree =
-        getMethodSourceMethod(methodSourceAnnotation, state)
+        methodSourceMethod
             .flatMap(JUnitValueSource::getReturnTree)
             .map(ReturnTree::getExpression)
             .filter(MethodInvocationTree.class::isInstance)
@@ -127,7 +128,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                     methodSourceAnnotation,
                     String.format(
                         "@ValueSource(%s = {%s})", parameterType, String.join(", ", arguments)))
-                .delete(getMethodSourceMethod(methodSourceAnnotation, state).orElse(null))
+                .delete(methodSourceMethod.orElseThrow())
                 .build()));
   }
 
@@ -151,15 +152,16 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       return Optional.empty();
     }
 
-    Optional<String> methodSourceMethodName =
-        Optional.ofNullable(AnnotationMatcherUtils.getArgument(annotation, "value"))
-            .filter(expression -> expression.getKind() == Kind.STRING_LITERAL)
-            .map(literal -> ((LiteralTree) literal).getValue().toString());
+    ExpressionTree expr = AnnotationMatcherUtils.getArgument(annotation, "value");
+    if (!(expr instanceof LiteralTree)) {
+      return Optional.empty();
+    }
 
     return classTree.getMembers().stream()
         .filter(MethodTree.class::isInstance)
         .map(MethodTree.class::cast)
-        .filter(method -> method.getName().contentEquals(methodSourceMethodName.orElseThrow()))
+        .filter(
+            method -> method.getName().contentEquals(((LiteralTree) expr).getValue().toString()))
         .findFirst();
   }
 
