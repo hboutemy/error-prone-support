@@ -25,7 +25,9 @@ public final class SourceCode {
    */
   // XXX: Add tests!
   public static boolean isTextBlockSupported(VisitorState state) {
-    return Target.instance(state.context).compareTo(Target.JDK1_15) >= 0;
+    // XXX: String comparison is for JDK 11 compatibility. Is there a better way?
+    return Target.instance(state.context).toString().compareTo("JDK1_15") >= 0;
+    // return Target.instance(state.context).compareTo(Target.JDK1_15) >= 0;
   }
 
   /**

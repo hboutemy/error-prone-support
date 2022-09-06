@@ -4,6 +4,8 @@ import com.google.errorprone.BugCheckerRefactoringTestHelper;
 import com.google.errorprone.BugCheckerRefactoringTestHelper.TestMode;
 import com.google.errorprone.CompilationTestHelper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
 final class ErrorProneTestHelperSourceFormatTest {
   private final CompilationTestHelper compilationTestHelper =
@@ -19,6 +21,10 @@ final class ErrorProneTestHelperSourceFormatTest {
               ErrorProneTestHelperSourceFormat.class, getClass())
           .setArgs("-XepOpt:ErrorProneTestHelperSourceFormat:AvoidTextBlocks=true");
 
+  // XXX: Consider reducing the `@DisabledForJreRange(max = JRE.JAVA_14)` test scope by moving the
+  // text blocks to smaller test methods.
+
+  @DisabledForJreRange(max = JRE.JAVA_14)
   @Test
   void identification() {
     compilationTestHelper
@@ -86,6 +92,7 @@ final class ErrorProneTestHelperSourceFormatTest {
         .doTest();
   }
 
+  @DisabledForJreRange(max = JRE.JAVA_14)
   @Test
   void identificationAvoidTextBlocks() {
     avoidTextBlocksCompilationTestHelper
@@ -141,6 +148,7 @@ final class ErrorProneTestHelperSourceFormatTest {
   }
 
   // XXX: Add `replacement` test.
+  @DisabledForJreRange(max = JRE.JAVA_14)
   @Test
   void replacement() {
     /*

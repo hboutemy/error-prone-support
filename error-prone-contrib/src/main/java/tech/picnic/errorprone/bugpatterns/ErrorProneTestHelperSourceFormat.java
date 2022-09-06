@@ -248,7 +248,7 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
     StringBuilder source = new StringBuilder();
 
     for (ExpressionTree sourceLine : sourceLines) {
-      if (!source.isEmpty()) {
+      if (source.length() > 0) {
         source.append('\n');
       }
 
