@@ -64,6 +64,8 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
   private static final long serialVersionUID = 1L;
   private static final String FLAG_AVOID_TEXT_BLOCKS =
       "ErrorProneTestHelperSourceFormat:AvoidTextBlocks";
+  private static final String FLAG_IGNORE_MALFORMED_CODE =
+      "ErrorProneTestHelperSourceFormat:IgnoreMalformedCode";
   private static final Formatter FORMATTER = new Formatter();
   private static final Matcher<ExpressionTree> INPUT_SOURCE_ACCEPTING_METHOD =
       anyOf(
@@ -82,6 +84,7 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
   private static final String DEFAULT_TEXT_BLOCK_INDENTATION = " ".repeat(12);
 
   private final boolean avoidTextBlocks;
+  private final boolean ignoreMalformedCode;
 
   /** Instantiates the default {@link ErrorProneTestHelperSourceFormat}. */
   public ErrorProneTestHelperSourceFormat() {
@@ -95,6 +98,7 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
    */
   public ErrorProneTestHelperSourceFormat(ErrorProneFlags flags) {
     avoidTextBlocks = flags.getBoolean(FLAG_AVOID_TEXT_BLOCKS).orElse(Boolean.FALSE);
+    ignoreMalformedCode = flags.getBoolean(FLAG_IGNORE_MALFORMED_CODE).orElse(Boolean.FALSE);
   }
 
   @Override
@@ -128,9 +132,11 @@ public final class ErrorProneTestHelperSourceFormat extends BugChecker
       String gjfResult = formatSourceCode(source, retainUnusedImports);
       formatted = canUseTextBlocks(state) ? gjfResult : gjfResult.stripTrailing();
     } catch (FormatterException e) {
-      return buildDescription(methodInvocation)
-          .setMessage(String.format("Source code is malformed: %s", e.getMessage()))
-          .build();
+      return ignoreMalformedCode
+          ? Description.NO_MATCH
+          : buildDescription(methodInvocation)
+              .setMessage(String.format("Source code is malformed: %s", e.getMessage()))
+              .build();
     }
 
     boolean isFormatted = source.equals(formatted);

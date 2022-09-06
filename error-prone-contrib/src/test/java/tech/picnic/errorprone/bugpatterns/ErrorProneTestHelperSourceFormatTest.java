@@ -8,6 +8,7 @@ import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 
 final class ErrorProneTestHelperSourceFormatTest {
+  // XXX: Add tests cases for `ErrorProneTestHelperSourceFormat:IgnoreMalformedCode`.
   private final CompilationTestHelper compilationTestHelper =
       CompilationTestHelper.newInstance(ErrorProneTestHelperSourceFormat.class, getClass());
   private final CompilationTestHelper avoidTextBlocksCompilationTestHelper =
