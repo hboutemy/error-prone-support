@@ -99,7 +99,6 @@ final class TimeZoneUsageTest {
                 }
               }
             }
-
             """)
         .doTest();
   }

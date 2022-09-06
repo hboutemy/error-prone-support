@@ -129,7 +129,6 @@ final class CanonicalAnnotationSyntaxTest {
               })
               A trailingComma3();
             }
-
             """)
         .doTest();
   }
@@ -209,7 +208,6 @@ final class CanonicalAnnotationSyntaxTest {
               })
               A trailingComma3();
             }
-
             """)
         .addOutputLines(
             "out/pkg/A.java",
@@ -276,7 +274,6 @@ final class CanonicalAnnotationSyntaxTest {
               @Foo({"a" + "\\nb", "c" + "\\nd"})
               A trailingComma3();
             }
-
             """)
         .doTest(TestMode.TEXT_MATCH);
   }

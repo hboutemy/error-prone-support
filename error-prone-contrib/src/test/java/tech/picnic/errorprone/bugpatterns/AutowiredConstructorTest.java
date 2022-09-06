@@ -71,8 +71,8 @@ final class AutowiredConstructorTest {
         .doTest();
   }
 
-  @Test
   @SuppressWarnings("RegexpMultiline" /* Check may introduce empy line at start of code block. */)
+  @Test
   // XXX: Try to solve this ^ by dropping the whole line where possible. If sufficiently generic,
   // introduce a helper method in `SourceCode` for this.
   void replacement() {
