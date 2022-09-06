@@ -72,6 +72,9 @@ final class AutowiredConstructorTest {
   }
 
   @Test
+  @SuppressWarnings("RegexpMultiline" /* Check may introduce empy line at start of code block. */)
+  // XXX: Try to solve this ^ by dropping the whole line where possible. If sufficiently generic,
+  // introduce a helper method in `SourceCode` for this.
   void replacement() {
     refactoringTestHelper
         .addInputLines(
@@ -99,11 +102,13 @@ final class AutowiredConstructorTest {
 
             interface Container {
               class A {
+
                 @Deprecated
                 A() {}
               }
 
               class B {
+
                 B(String x) {}
               }
             }
