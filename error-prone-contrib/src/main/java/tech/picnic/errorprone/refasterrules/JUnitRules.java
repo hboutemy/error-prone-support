@@ -7,7 +7,6 @@ import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
 import com.google.errorprone.refaster.annotation.Repeated;
 import com.google.errorprone.refaster.annotation.UseImportPolicy;
-import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 import tech.picnic.errorprone.refaster.annotation.OnlineDocumentation;
 
