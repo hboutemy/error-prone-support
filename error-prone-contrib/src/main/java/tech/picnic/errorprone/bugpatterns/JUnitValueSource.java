@@ -80,25 +80,18 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
   private static final String METHOD_SOURCE_ANNOTATION_FQCN =
       "org.junit.jupiter.params.provider.MethodSource";
 
-  // XXX: Rename this, because we now already match on the correct parameter types.
-  private static final Matcher<MethodTree> IS_METHOD_SOURCE_WITH_ONE_PARAMETER =
+  private static final Matcher<MethodTree> VALUE_SOURCE_CANDIDATE =
       allOf(
           annotations(AT_LEAST_ONE, isType("org.junit.jupiter.params.provider.MethodSource")),
           methodHasParameters(
               anyOf(
                   isPrimitiveOrBoxedPrimitiveType(),
                   isSameType(String.class),
-                  // XXX:There should be a nicer way to do this.
-                  (variableTree, state) ->
-                      ASTHelpers.getType(variableTree)
-                          .baseType()
-                          .tsym
-                          .toString()
-                          .equals("java.lang.Class"))));
+                  isSameType(state -> state.getSymtab().classType))));
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
-    if (IS_METHOD_SOURCE_WITH_ONE_PARAMETER.matches(tree, state)) {
+    if (VALUE_SOURCE_CANDIDATE.matches(tree, state)) {
       Type type = ASTHelpers.getType(Iterables.getOnlyElement(tree.getParameters()));
       // XXX: Find a nice way to get the specific `AnnotationTree` without specifying the index.
       // This also shows we should add a test where the annotations are in a different order ;).
@@ -123,7 +116,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .filter(JUnitValueSource::isSimpleStream);
 
     if (methodInvocationTree.isEmpty()) {
-      return null;
+      return Description.NO_MATCH;
     }
 
     ImmutableList<String> arguments =
