@@ -12,8 +12,7 @@ import static com.google.errorprone.matchers.Matchers.isPrimitiveOrBoxedPrimitiv
 import static com.google.errorprone.matchers.Matchers.isSameType;
 import static com.google.errorprone.matchers.Matchers.isType;
 import static com.google.errorprone.matchers.Matchers.methodHasParameters;
-import static com.google.errorprone.util.MoreAnnotations.getAnnotationValue;
-import static com.sun.source.tree.Tree.Kind.MEMBER_SELECT;
+import static com.google.errorprone.matchers.Matchers.staticMethod;
 import static java.util.stream.Collectors.joining;
 
 import com.google.auto.service.AutoService;
@@ -28,17 +27,16 @@ import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.util.ASTHelpers;
-import com.google.errorprone.util.MoreAnnotations;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
-import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree.JCAssign;
 import java.util.Optional;
+import java.util.stream.Stream;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 
 /**
@@ -48,8 +46,7 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
  */
 @AutoService(BugChecker.class)
 @BugPattern(
-    summary =
-        "Prefer `@ValueSource` over a `@MethodSource` with arguments containing a single argument",
+    summary = "Prefer `@ValueSource` over a `@MethodSource` that contains only a single argument",
     linkType = NONE,
     severity = SUGGESTION,
     tags = SIMPLIFICATION)
@@ -77,9 +74,9 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
           .put("short", "shorts")
           .build();
 
-  private static final String METHOD_SOURCE_ANNOTATION_FQCN =
-      "org.junit.jupiter.params.provider.MethodSource";
-
+  // XXX: Add something about the argument types?
+  private static final Matcher<MethodInvocationTree> STREAM_OF_ARGUMENTS =
+      allOf(staticMethod().onClass(Stream.class.getName()).named("of"));
   private static final Matcher<MethodTree> VALUE_SOURCE_CANDIDATE =
       allOf(
           annotations(AT_LEAST_ONE, isType("org.junit.jupiter.params.provider.MethodSource")),
@@ -91,13 +88,15 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
 
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
-    if (VALUE_SOURCE_CANDIDATE.matches(tree, state)) {
-      Type type = ASTHelpers.getType(Iterables.getOnlyElement(tree.getParameters()));
-      // XXX: Find a nice way to get the specific `AnnotationTree` without specifying the index.
-      // This also shows we should add a test where the annotations are in a different order ;).
-      return tryConstructValueSourceFix(tree, type, ASTHelpers.getAnnotations(tree).get(1), state);
+    if (!VALUE_SOURCE_CANDIDATE.matches(tree, state)) {
+      return Description.NO_MATCH;
     }
-    return Description.NO_MATCH;
+
+    Type type = ASTHelpers.getType(Iterables.getOnlyElement(tree.getParameters()));
+    AnnotationTree annotationTree =
+        ASTHelpers.getAnnotationWithSimpleName(
+            tree.getModifiers().getAnnotations(), "MethodSource");
+    return tryConstructValueSourceFix(tree, type, annotationTree, state);
   }
 
   private Description tryConstructValueSourceFix(
@@ -105,15 +104,16 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       Type parameterType,
       AnnotationTree methodSourceAnnotation,
       VisitorState state) {
-    String methodSourceValue = getMethodSourceAnnotationValue(ASTHelpers.getSymbol(methodTree));
-    MethodTree factoryMethod = getFactoryMethod(methodSourceValue, state);
+    String factoryName =
+        ((JCAssign) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
+            .rhs.type.stringValue();
+    MethodTree factoryMethod = getFactoryMethod(factoryName, state);
 
     Optional<MethodInvocationTree> methodInvocationTree =
-        getReturnTree(factoryMethod)
-            .map(ReturnTree::getExpression)
+        getReturnTreeExpression(factoryMethod)
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .filter(JUnitValueSource::isSimpleStream);
+            .filter(m -> STREAM_OF_ARGUMENTS.matches(m, state));
 
     if (methodInvocationTree.isEmpty()) {
       return Description.NO_MATCH;
@@ -140,30 +140,12 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .build());
   }
 
-  private static String getMethodSourceAnnotationValue(Symbol symbol) {
-    return symbol.getRawAttributes().stream()
-        .filter(a -> a.type.tsym.getQualifiedName().contentEquals(METHOD_SOURCE_ANNOTATION_FQCN))
-        .findAny()
-        .flatMap(a -> getAnnotationValue(a, "value"))
-        .stream()
-        .flatMap(MoreAnnotations::asStrings)
-        .findFirst()
-        .orElseThrow();
-  }
-
-  private static Optional<ReturnTree> getReturnTree(MethodTree methodTree) {
+  private static Optional<ExpressionTree> getReturnTreeExpression(MethodTree methodTree) {
     return methodTree.getBody().getStatements().stream()
         .filter(ReturnTree.class::isInstance)
         .findFirst()
-        .map(ReturnTree.class::cast);
-  }
-
-  // XXX: Didn't check this one. What is a `simpleStream`? I think we can also make this a
-  // `Matcher`.
-  private static boolean isSimpleStream(MethodInvocationTree invocationTree) {
-    ExpressionTree methodSelect = invocationTree.getMethodSelect();
-    return methodSelect.getKind() == MEMBER_SELECT
-        && ((MemberSelectTree) methodSelect).getIdentifier().contentEquals("of");
+        .map(ReturnTree.class::cast)
+        .map(ReturnTree::getExpression);
   }
 
   private static MethodTree getFactoryMethod(String factoryMethodName, VisitorState state) {
