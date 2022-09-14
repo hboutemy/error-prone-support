@@ -170,9 +170,7 @@ final class JUnitValueSourceTest {
             "  }",
             "",
             "  private static Stream<Arguments> fooTestCases() {",
-            "    return Stream.of(",
-            "      arguments(1, 2),",
-            "      arguments(3, 4));",
+            "    return Stream.of(arguments(1, 2), arguments(3, 4));",
             "  }",
             "}")
         .doTest();
