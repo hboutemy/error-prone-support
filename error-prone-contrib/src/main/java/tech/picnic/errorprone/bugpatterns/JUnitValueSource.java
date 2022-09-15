@@ -17,7 +17,6 @@ import static java.util.stream.Collectors.joining;
 
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
@@ -52,27 +51,6 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
     tags = SIMPLIFICATION)
 public final class JUnitValueSource extends BugChecker implements MethodTreeMatcher {
   private static final long serialVersionUID = 1L;
-  private static final ImmutableMap<String, String> METHOD_SOURCE_PARAMETER_TYPES =
-      ImmutableMap.<String, String>builder()
-          .put("boolean", "booleans")
-          .put("byte", "bytes")
-          .put("char", "chars")
-          .put("double", "doubles")
-          .put("float", "floats")
-          .put("int", "ints")
-          .put("java.lang.Boolean", "booleans")
-          .put("java.lang.Byte", "bytes")
-          .put("java.lang.Character", "chars")
-          .put("java.lang.Class", "classes")
-          .put("java.lang.Double", "doubles")
-          .put("java.lang.Float", "floats")
-          .put("java.lang.Integer", "ints")
-          .put("java.lang.Long", "longs")
-          .put("java.lang.Short", "shorts")
-          .put("java.lang.String", "strings")
-          .put("long", "longs")
-          .put("short", "shorts")
-          .build();
 
   // XXX: Add something about the argument types?
   private static final Matcher<MethodInvocationTree> STREAM_OF_ARGUMENTS =
@@ -134,7 +112,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                 methodSourceAnnotation,
                 String.format(
                     "@ValueSource(%s = {%s})",
-                    METHOD_SOURCE_PARAMETER_TYPES.get(parameterType.toString()),
+                    getAnnotationParameterName(parameterType.tsym.name.toString()),
                     String.join(", ", arguments)))
             .delete(factoryMethod)
             .build());
@@ -155,6 +133,17 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .filter(method -> method.getName().contentEquals(factoryMethodName))
         .findFirst()
         .orElseThrow();
+  }
+
+  private static String getAnnotationParameterName(String typeName) {
+    switch (typeName) {
+      case "Class":
+        return "classes";
+      case "Integer":
+        return "ints";
+      default:
+        return typeName.toLowerCase() + "s";
+    }
   }
 
   // XXX: Improve the method name, what are we _really_ collecting.
