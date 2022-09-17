@@ -1,6 +1,7 @@
 package tech.picnic.errorprone.refastertemplates;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
 import org.assertj.core.api.AbstractAssert;
 import tech.picnic.errorprone.refaster.test.RefasterTemplateTestCase;
@@ -24,5 +25,11 @@ final class AssertJObjectTemplatesTest implements RefasterTemplateTestCase {
 
   AbstractAssert<?, ?> testAssertThatHasToString() {
     return assertThat(new Object()).hasToString("foo");
+  }
+
+  AbstractAssert<?, ?> testAbstractAssertAsInstanceOfMatches() {
+    return assertThat((Object) new IllegalStateException())
+        .asInstanceOf(type(RuntimeException.class))
+        .matches(t -> !(t).toString().isEmpty());
   }
 }
