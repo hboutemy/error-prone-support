@@ -85,10 +85,10 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       Type parameterType,
       AnnotationTree methodSourceAnnotation,
       VisitorState state) {
-    String factoryName =
+    String factoryMethodName =
         ((JCAssign) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
             .rhs.type.stringValue();
-    MethodTree factoryMethod = getFactoryMethod(factoryName, state);
+    MethodTree factoryMethod = getFactoryMethod(factoryMethodName, state);
 
     Optional<MethodInvocationTree> methodInvocationTree =
         getReturnTreeExpression(factoryMethod)
