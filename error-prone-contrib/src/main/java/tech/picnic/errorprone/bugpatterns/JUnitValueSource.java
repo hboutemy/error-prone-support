@@ -25,7 +25,6 @@ import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
-import com.google.errorprone.matchers.method.MethodMatchers;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
@@ -55,7 +54,6 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
     tags = SIMPLIFICATION)
 public final class JUnitValueSource extends BugChecker implements MethodTreeMatcher {
   private static final long serialVersionUID = 1L;
-
   private static final Matcher<ExpressionTree> STREAM_OF_ARGUMENTS =
       staticMethod().onClass(Stream.class.getName()).named("of");
   private static final Matcher<MethodTree> VALUE_SOURCE_CANDIDATE =
@@ -95,7 +93,6 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
             .filter(m -> STREAM_OF_ARGUMENTS.matches(m, state));
-
     if (methodInvocationTree.isEmpty()) {
       return Description.NO_MATCH;
     }
