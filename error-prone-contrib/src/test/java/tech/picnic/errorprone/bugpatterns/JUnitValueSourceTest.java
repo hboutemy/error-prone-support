@@ -25,6 +25,8 @@ final class JUnitValueSourceTest {
             "import org.junit.jupiter.params.provider.MethodSource;",
             "",
             "class A {",
+            "  private static final char CONST_CHAR = 'c';",
+            "",
             "  @ParameterizedTest",
             "  @MethodSource(\"fooTestCases\")",
             "  // BUG: Diagnostic contains:",
@@ -33,35 +35,7 @@ final class JUnitValueSourceTest {
             "  }",
             "",
             "  private static Stream<Arguments> fooTestCases() {",
-            "    return Stream.of(arguments('a'), arguments('b'));",
-            "  }",
-            "}")
-        .doTest();
-  }
-
-  @Test
-  void identificationCharacter() {
-    compilationTestHelper
-        .addSourceLines(
-            "A.java",
-            "import static org.assertj.core.api.Assertions.assertThat;",
-            "import static org.junit.jupiter.params.provider.Arguments.arguments;",
-            "",
-            "import java.util.stream.Stream;",
-            "import org.junit.jupiter.params.ParameterizedTest;",
-            "import org.junit.jupiter.params.provider.Arguments;",
-            "import org.junit.jupiter.params.provider.MethodSource;",
-            "",
-            "class A {",
-            "  @ParameterizedTest",
-            "  @MethodSource(\"fooTestCases\")",
-            "  // BUG: Diagnostic contains:",
-            "  void foo(Character character) {",
-            "    assertThat(character).isNotNull();",
-            "  }",
-            "",
-            "  private static Stream<Arguments> fooTestCases() {",
-            "    return Stream.of(arguments(Character.valueOf('a')), arguments(Character.valueOf('b')));",
+            "    return Stream.of(arguments('a'), arguments('b'), arguments(CONST_CHAR));",
             "  }",
             "}")
         .doTest();
@@ -117,7 +91,8 @@ final class JUnitValueSourceTest {
             "  }",
             "",
             "  private static Stream<Arguments> fooTestCases() {",
-            "    return Stream.of(arguments(String.class), arguments(Integer.class));",
+            "    return Stream.of(",
+            "        arguments(String.class), arguments(Integer.class), arguments(java.lang.Double.class));",
             "  }",
             "}")
         .doTest();
@@ -177,9 +152,9 @@ final class JUnitValueSourceTest {
   }
 
   @Test
-  void replacement() {
-    refactoringTestHelper
-        .addInputLines(
+  void identificationNoRuntimeParameters() {
+    compilationTestHelper
+        .addSourceLines(
             "A.java",
             "import static org.assertj.core.api.Assertions.assertThat;",
             "import static org.junit.jupiter.params.provider.Arguments.arguments;",
@@ -197,7 +172,37 @@ final class JUnitValueSourceTest {
             "  }",
             "",
             "  private static Stream<Arguments> fooTestCases() {",
-            "    return Stream.of(arguments(1), arguments(2));",
+            "    int second = 1 + 2;",
+            "    return Stream.of(arguments(1), arguments(second));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  void replacement() {
+    refactoringTestHelper
+        .addInputLines(
+            "A.java",
+            "import static org.assertj.core.api.Assertions.assertThat;",
+            "import static org.junit.jupiter.params.provider.Arguments.arguments;",
+            "",
+            "import java.util.stream.Stream;",
+            "import org.junit.jupiter.params.ParameterizedTest;",
+            "import org.junit.jupiter.params.provider.Arguments;",
+            "import org.junit.jupiter.params.provider.MethodSource;",
+            "",
+            "class A {",
+            "  private static final int MAGIC_NUMBER = 42;",
+            "",
+            "  @ParameterizedTest",
+            "  @MethodSource(\"fooTestCases\")",
+            "  void foo(int foo) {",
+            "    assertThat(foo).isNotNull();",
+            "  }",
+            "",
+            "  private static Stream<Arguments> fooTestCases() {",
+            "    return Stream.of(arguments(1), arguments(2), arguments(MAGIC_NUMBER));",
             "  }",
             "}")
         .addOutputLines(
@@ -212,8 +217,10 @@ final class JUnitValueSourceTest {
             "import org.junit.jupiter.params.provider.ValueSource;",
             "",
             "class A {",
+            "  private static final int MAGIC_NUMBER = 42;",
+            "",
             "  @ParameterizedTest",
-            "  @ValueSource(ints = {1, 2})",
+            "  @ValueSource(ints = {1, 2, MAGIC_NUMBER})",
             "  void foo(int foo) {",
             "    assertThat(foo).isNotNull();",
             "  }",

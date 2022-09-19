@@ -29,11 +29,14 @@ import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
+import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
@@ -97,6 +100,13 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       return Description.NO_MATCH;
     }
 
+    if (!methodInvocationTree.orElseThrow().getArguments().stream()
+        .filter(MethodInvocationTree.class::isInstance)
+        .map(MethodInvocationTree.class::cast)
+        .allMatch(argumentsMethod -> allArgumentsAreConstant(argumentsMethod.getArguments()))) {
+      return Description.NO_MATCH;
+    }
+
     ImmutableList<String> arguments =
         methodInvocationTree.orElseThrow().getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
@@ -148,7 +158,20 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     }
   }
 
-  private static String collectValuesFromArgumentsMethod(MethodInvocationTree tree, VisitorState state) {
+  private static boolean allArgumentsAreConstant(List<? extends ExpressionTree> arguments) {
+    return arguments.stream()
+        .allMatch(
+            tree -> {
+              // XXX: Class literals don't have a constant value, but CAN be used in annotations
+              if (tree.getKind() == Tree.Kind.MEMBER_SELECT) {
+                return ((MemberSelectTree) tree).getIdentifier().contentEquals("class");
+              }
+              return ASTHelpers.constValue(tree) != null;
+            });
+  }
+
+  private static String collectValuesFromArgumentsMethod(
+      MethodInvocationTree tree, VisitorState state) {
     return tree.getArguments().stream()
         .map(expression -> SourceCode.treeToString(expression, state))
         .collect(joining(", "));
