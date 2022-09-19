@@ -25,6 +25,7 @@ import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
+import com.google.errorprone.matchers.method.MethodMatchers;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
@@ -55,9 +56,8 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 public final class JUnitValueSource extends BugChecker implements MethodTreeMatcher {
   private static final long serialVersionUID = 1L;
 
-  // XXX: Add something about the argument types?
-  private static final Matcher<MethodInvocationTree> STREAM_OF_ARGUMENTS =
-      allOf(staticMethod().onClass(Stream.class.getName()).named("of"));
+  private static final Matcher<ExpressionTree> STREAM_OF_ARGUMENTS =
+      staticMethod().onClass(Stream.class.getName()).named("of");
   private static final Matcher<MethodTree> VALUE_SOURCE_CANDIDATE =
       allOf(
           annotations(AT_LEAST_ONE, isType("org.junit.jupiter.params.provider.MethodSource")),
