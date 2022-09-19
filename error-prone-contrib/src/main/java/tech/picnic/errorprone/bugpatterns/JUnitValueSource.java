@@ -101,7 +101,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         methodInvocationTree.orElseThrow().getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .map(invocation -> collectValues(invocation, state))
+            .map(invocation -> collectValuesFromArgumentsMethod(invocation, state))
             .collect(toImmutableList());
 
     return describeMatch(
@@ -139,6 +139,8 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     switch (typeName) {
       case "Class":
         return "classes";
+      case "Character":
+        return "chars";
       case "Integer":
         return "ints";
       default:
@@ -146,8 +148,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     }
   }
 
-  // XXX: Improve the method name, what are we _really_ collecting.
-  private static String collectValues(MethodInvocationTree tree, VisitorState state) {
+  private static String collectValuesFromArgumentsMethod(MethodInvocationTree tree, VisitorState state) {
     return tree.getArguments().stream()
         .map(expression -> SourceCode.treeToString(expression, state))
         .collect(joining(", "));
