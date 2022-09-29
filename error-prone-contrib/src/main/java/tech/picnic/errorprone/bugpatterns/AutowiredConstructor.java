@@ -45,11 +45,11 @@ public final class AutowiredConstructor extends BugChecker implements ClassTreeM
       return Description.NO_MATCH;
     }
 
-    ImmutableList<AnnotationTree> annotations =
+    ImmutableList<AnnotationTree> autoWiredAnnotations =
         AUTOWIRED_ANNOTATION
             .multiMatchResult(Iterables.getOnlyElement(constructors), state)
             .matchingNodes();
-    if (annotations.size() != 1) {
+    if (autoWiredAnnotations.isEmpty()) {
       return Description.NO_MATCH;
     }
 
@@ -58,7 +58,7 @@ public final class AutowiredConstructor extends BugChecker implements ClassTreeM
      * means that the associated import can be removed as well. Rather than adding code for this case we
      * leave flagging the unused import to Error Prone's `RemoveUnusedImports` check.
      */
-    AnnotationTree annotation = Iterables.getOnlyElement(annotations);
+    AnnotationTree annotation = Iterables.getOnlyElement(autoWiredAnnotations);
     return describeMatch(annotation, SuggestedFix.delete(annotation));
   }
 }
