@@ -24,7 +24,7 @@ directory:
 ```sh
 bundle install
 bundle exec ruby generate-docs.rb
-bundle exec jekyll serve --livereload -I --skip-initial-build
+bundle exec jekyll serve --livereload --incremental --skip-initial-build
 ```
 
 The website will now be [available][localhost-port-4000] on port 4000. Source

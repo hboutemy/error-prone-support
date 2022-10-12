@@ -1,3 +1,8 @@
 @import "./color_schemes/dark";
 @import "_variables";
 @import "_common";
+
+// Swap $blue-000 and $blue-300, mainly for callouts.
+// This is done by default for red, but not for other colours.
+$blue-000: #183385;
+$blue-300: #2c84fa;
