@@ -22,6 +22,12 @@ jobs:
           bundler-cache: true
       - name: Configure Github Pages
         uses: actions/configure-pages@v2.1.2
+      - name: Set up JDK
+        uses: actions/setup-java@v3.5.1
+        with:
+          java-version: 17.0.4
+          distribution: temurin
+          cache: maven
       - name: Compile project and extract data
         # XXX: Remove `-Dverification.warn` and update `website/README.md`
         # once module `docgen` has no errors.

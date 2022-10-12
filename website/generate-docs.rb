@@ -65,7 +65,9 @@ File.write("index.md", Mustache.render(File.read("index.mustache"), homepage))
 
 # XXX: Rename variable, it is confusing. It is a collection of all file paths for Bug Patterns and Refaster Rules.
 patterns = retrieve_patterns(generated_json_files_path)
+FileUtils.rm_r(bug_pattern_path)
 FileUtils.mkdir_p(bug_pattern_path)
+FileUtils.rm_r(refaster_rules_path)
 FileUtils.mkdir_p(refaster_rules_path)
 
 puts 'Generating bug patterns pages...'
@@ -100,6 +102,10 @@ patterns['refaster_rules'].values.each { |files|
   collection_files = files.to_h { |file| [get_refaster_file_type(file), parse_json(file)] }
   # XXX: Once we have rule non-test data, extract collection from there.
   collection_name = collection_files['test_input']['templateCollection']
+  # XXX: Exclude this collection based on the absence of `@OnlineDocumentation` in `docgen`.
+  if collection_name.include? 'NGToAssertJRules'
+    next
+  end
 
   rules = []
   # XXX: Once we have rule non-test data, iterate over that instead and extract input like we do output now.

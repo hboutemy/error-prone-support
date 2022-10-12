@@ -6,9 +6,9 @@ description: >-
   Error Prone extensions: extra bug checkers and a large battery of Refaster
   rules.
 
-remote_theme: just-the-docs/just-the-docs@v0.4.0.rc3
+theme: just-the-docs
 plugins:
-  - jekyll-remote-theme
+  - jekyll-sitemap
 
 # Files and directories not to be deployed through GitHub pages.
 exclude:
@@ -24,18 +24,6 @@ exclude:
 # See https://jekyllrb.com/docs/permalinks/#built-in-formats.
 permalink: pretty
 
-# Theme configuration.
-search_enabled: true
-heading_anchors: true
-
-callouts:
-  summary:
-    title: Summary
-    color: blue
-  warning:
-    title: Warning
-    color: red
-
 # Theme (just-the-docs) configuration.
 # See
 # https://just-the-docs.github.io/just-the-docs/docs/navigation-structure/#external-navigation-links.
@@ -44,9 +32,10 @@ nav_external_links:
     url: https://github.com/PicnicSupermarket/error-prone-support
     hide_icon: false
 
-twitter:
-  username: picnic
-  card: summary
+callouts:
+  summary:
+    title: Summary
+    color: blue
 
 # SEO configuration.
 # See https://jekyll.github.io/jekyll-seo-tag/usage.
@@ -56,3 +45,7 @@ social:
     - https://github.com/PicnicSupermarket
     - https://twitter.com/picnic
     - https://www.linkedin.com/company/picnictechnologies
+
+twitter:
+  username: picnic
+  card: summary

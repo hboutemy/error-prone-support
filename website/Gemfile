@@ -10,9 +10,9 @@ end
 
 group :jekyll_site_dependencies do
   gem "jekyll", "~> 4.2"
-  gem "jekyll-remote-theme", "~>0.4"
-  gem "jekyll-seo-tag", "~>2.8"
-  gem "rake", "~> 13.0" # Required for "just-the-docs" theme
+  gem "jekyll-sitemap", "~>1.4"
+  gem "just-the-docs", "0.4.0.rc3"
+  gem "rake", "~> 13.0"
   gem "webrick", "~> 1.7"
 end
 
