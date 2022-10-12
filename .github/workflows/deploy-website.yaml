@@ -31,11 +31,6 @@ jobs:
       - name: Generate documentation
         working-directory: ./website
         run: bundle exec ruby generate-docs.rb
-      - name: Validate HTML output
-        working-directory: ./website
-        # XXX: Drop `--disable_external true` once we fully adopted the
-        # "Refaster rules" terminology on our website and in the code.
-        run: bundle exec htmlproofer --disable_external true --check-external-hash false ./_site
       - name: Upload website as artifact
         uses: actions/upload-pages-artifact@v1.0.4
         with:

@@ -138,4 +138,6 @@ patterns['refaster_rules'].values.each { |files|
 }
 
 puts 'Generating website using Jekyll...'
-system("bundle exec jekyll build")
+system('bundle exec jekyll build')
+puts 'Validating website...'
+system('bundle exec htmlproofer --ignore-urls "/error-prone.picnic.tech/" --check-external-hash false ./_site')
