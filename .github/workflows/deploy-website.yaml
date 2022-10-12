@@ -22,7 +22,12 @@ jobs:
           bundler-cache: true
       - name: Configure Github Pages
         uses: actions/configure-pages@v2.1.2
-      # XXX: Run website/generate-docs.rb instead.
+      - name: Compile project and extract data
+        # XXX: Remove `-Dverification.warn` and update `website/README.md`
+        # once module `docgen` has no errors.
+        run: |
+          mvn -T1C clean install -DskipTests -Dverification.warn
+          mvn -T1C clean install -DskipTests -Dverification.warn -Pdocgen
       - name: Generate documentation
         working-directory: ./website
         run: bundle exec ruby generate-docs.rb

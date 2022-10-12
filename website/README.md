@@ -8,7 +8,18 @@ statically generated using data extracted from source code passed to
 # Local development
 
 To view the website on `localhost`, first follow the [Jekyll installation
-instructions][jekyll-docs-installation]. Once done, in this directory execute:
+instructions][jekyll-docs-installation]. Once done, run the following Maven
+commands in the root of the repository to extract the (test) data from the bug
+patterns and Refaster rule collections. Unless, these classes have been
+changed, this only needs to be executed once.
+
+```sh
+mvn -T1C clean install -DskipTests -Dverification.warn
+mvn -T1C clean install -DskipTests -Dverification.warn -Pdocgen
+```
+
+Then to generate the website content, execute in this
+directory:
 
 ```sh
 bundle install

@@ -63,13 +63,6 @@ puts 'Generating homepage...'
 homepage = File.read("#{repo_root}/README.md").gsub("src=\"website/", "src=\"").gsub("srcset=\"website/", "srcset=\"")
 File.write("index.md", Mustache.render(File.read("index.mustache"), homepage))
 
-if !system('type mvn > /dev/null')
-  puts '[WARN] Could not find `mvn` on PATH. Skipping data extraction from source code of bug patterns and Refaster (test) classes.'
-else
-  puts 'Generating JSON data for bug patterns and Refaster rules...'
-  # XXX: Remove `-Dvalidation.skip`.
-  system("mvn -f #{repo_root}/pom.xml -T1C clean install -DskipTests -Dverification.skip -Pdocgen")
-end
 # XXX: Rename variable, it is confusing. It is a collection of all file paths for Bug Patterns and Refaster Rules.
 patterns = retrieve_patterns(generated_json_files_path)
 FileUtils.mkdir_p(bug_pattern_path)

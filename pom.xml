@@ -1315,6 +1315,11 @@
 
     <profiles>
         <profile>
+            <!-- Adds the `docgen` module as an annotation processor to scan
+            the classpath and extract bug pattern and Refaster rule collection
+            (test) data used in documentation generation. Assumes that a prior
+            build has already installed the project in the local Maven
+            repository. -->
             <id>docgen</id>
             <build>
                 <pluginManagement>
