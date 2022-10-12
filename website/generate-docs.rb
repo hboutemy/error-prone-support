@@ -8,9 +8,13 @@ require 'mustache'
 # XXX: Perhaps split this out into multiple Ruby files for readability.
 # This script assumes to be ran inside `$repo_root/website`.
 repo_root = ".."
-generated_json_files_path = "#{repo_root}/error-prone-contrib/target/docs"
-bug_pattern_path = "bugpatterns/"
-refaster_rules_path = "refasterrules/"
+generated_json_files_path = "./#{repo_root}/error-prone-contrib/target/docs"
+
+templates_path = "./_templates"
+bug_pattern_path = "./bugpatterns"
+refaster_rules_path = "./refasterrules"
+
+repo_url = "https://github.com/PicnicSupermarket/error-prone-support/blob/master"
 
 def retrieve_patterns(path)
   Dir.glob("#{path}/*.json").inject({ "bug_patterns" => {}, "refaster_rules" => {} }) { |memo, file_name|
@@ -61,14 +65,15 @@ end
 
 puts 'Generating homepage...'
 homepage = File.read("#{repo_root}/README.md").gsub("src=\"website/", "src=\"").gsub("srcset=\"website/", "srcset=\"")
-File.write("index.md", Mustache.render(File.read("index.mustache"), homepage))
+File.write("index.md", Mustache.render(File.read("./#{templates_path}/readme.mustache"), homepage))
 
 # XXX: Rename variable, it is confusing. It is a collection of all file paths for Bug Patterns and Refaster Rules.
 patterns = retrieve_patterns(generated_json_files_path)
 FileUtils.remove_dir(bug_pattern_path) if File.directory?(bug_pattern_path)
-FileUtils.mkdir_p(bug_pattern_path)
+FileUtils.mkdir(bug_pattern_path)
+
 FileUtils.remove_dir(refaster_rules_path) if File.directory?(refaster_rules_path)
-FileUtils.mkdir_p(refaster_rules_path)
+FileUtils.mkdir(refaster_rules_path)
 
 puts 'Generating bug patterns pages...'
 patterns['bug_patterns'].values.each { |files|
@@ -80,13 +85,13 @@ patterns['bug_patterns'].values.each { |files|
   identification_samples = data['identificationTests']&.map { |testCase| testCase.rstrip } || []
 
   # XXX: Add suppression data (once available).
-  render = Mustache.render(File.read("bug-pattern.mustache"), {
+  render = Mustache.render(File.read("./#{templates_path}/bugpattern.mustache"), {
     explanation: data['explanation'],
     has_samples: identification_samples.length > 0 || replacement_samples.length > 0,
     has_replacement_samples: replacement_samples.length > 0,
     has_identification_samples: identification_samples.length > 0,
     identification_samples: identification_samples,
-    location: "https://github.com/PicnicSupermarket/error-prone-support/blob/master/error-prone-contrib/src/main/java/#{data['fullyQualifiedName'].gsub(/\./, "/")}.java",
+    source_url: "#{repo_url}/error-prone-contrib/src/main/java/#{data['fullyQualifiedName'].gsub(/\./, "/")}.java",
     name: data['name'],
     replacement_samples: replacement_samples,
     severity_level: {
@@ -119,7 +124,7 @@ patterns['refaster_rules'].values.each { |files|
     rules << {
       collection_name: collection_name,
       # XXX: Derive from FQN passed when extracting RefasterRuleData, ideally with anchor info (source code line) to the inner class.
-      location: "https://github.com/PicnicSupermarket/error-prone-support/blob/master/error-prone-contrib/src/main/java/tech/picnic/errorprone/refasterrules/#{collection_name}.java",
+      source_url: "#{repo_url}/error-prone-contrib/src/main/java/tech/picnic/errorprone/refasterrules/#{collection_name}.java",
       rule_name: rule_name,
       samples: [Diffy::Diff.new(input, output).to_s.rstrip],
       # XXX: Extract suggestion and tags instead of hardcoding it.
@@ -132,10 +137,10 @@ patterns['refaster_rules'].values.each { |files|
     }
   }
 
-  render = Mustache.render(File.read("refaster-rule-collection.mustache"), {
+  render = Mustache.render(File.read("./#{templates_path}/refasterrule.mustache"), {
     collection_name: collection_name,
     # XXX: Derive from FQN passed when extracting RefasterRuleData.
-    location: "https://github.com/PicnicSupermarket/error-prone-support/blob/master/error-prone-contrib/src/main/java/tech/picnic/errorprone/refasterrules/#{collection_name}.java",
+    source_url: "#{repo_url}/error-prone-contrib/src/main/java/tech/picnic/errorprone/refasterrules/#{collection_name}.java",
     rules: rules,
     severity_level: {
       content: 'SUGGESTION',
@@ -147,5 +152,6 @@ patterns['refaster_rules'].values.each { |files|
 
 puts 'Generating website using Jekyll...'
 system('bundle exec jekyll build')
+
 puts 'Validating website...'
 system('bundle exec htmlproofer --ignore-urls "/error-prone.picnic.tech/" --check-external-hash false ./_site')
