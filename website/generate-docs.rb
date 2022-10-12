@@ -76,17 +76,19 @@ patterns['bug_patterns'].values.each { |files|
 
   # XXX: Introduce a new `@DocumentationExample` annotation and derive samples from that.
   # XXX: While awaiting the previous XXX, make a temporary decision on which and how many samples to show.
-  diff_samples = data['replacementTests']&.map { |testCase| Diffy::Diff.new(testCase['inputLines'], testCase['outputLines']).to_s.rstrip } || []
-  java_samples = data['identificationTests']&.map { |testCase| testCase.rstrip } || []
+  replacement_samples = data['replacementTests']&.map { |testCase| Diffy::Diff.new(testCase['inputLines'], testCase['outputLines']).to_s.rstrip } || []
+  identification_samples = data['identificationTests']&.map { |testCase| testCase.rstrip } || []
 
   # XXX: Add suppression data (once available).
   render = Mustache.render(File.read("bug-pattern.mustache"), {
-    diff_samples: diff_samples,
     explanation: data['explanation'],
-    has_samples: java_samples.length > 0 || diff_samples.length > 0,
-    java_samples: java_samples,
+    has_samples: identification_samples.length > 0 || replacement_samples.length > 0,
+    has_replacement_samples: replacement_samples.length > 0,
+    has_identification_samples: identification_samples.length > 0,
+    identification_samples: identification_samples,
     location: "https://github.com/PicnicSupermarket/error-prone-support/blob/master/error-prone-contrib/src/main/java/#{data['fullyQualifiedName'].gsub(/\./, "/")}.java",
     name: data['name'],
+    replacement_samples: replacement_samples,
     severity_level: {
       content: data['severityLevel'],
       color: get_severity_color(data['severityLevel'])

@@ -38,29 +38,29 @@ nav_order: 1
 {{#has_samples}}
 ## Samples
 
-{{#diff_samples.0}}
+{{#has_replacement_samples}}
 ### Replacement
 
 Shows the difference in example code before and after the bug pattern is
 applied.
 
-{{#diff_samples}}
+{{#replacement_samples}}
 ```diff
 {{{.}}}
 ```
-{{/diff_samples}}
-{{/diff_samples.0}}
+{{/replacement_samples}}
+{{/has_replacement_samples}}
 
-{{#java_samples.0}}
+{{#has_identification_samples}}
 ### Identification
 
 Shows code lines which will (not) be flagged by this bug pattern. \
 A `//BUG: Diagnostic contains:` comment is placed above any violating line.
 
-{{#java_samples}}
+{{#identification_samples}}
 ```java
 {{{.}}}
 ```
-{{/java_samples}}
-{{/java_samples.0}}
+{{/identification_samples}}
+{{/has_identification_samples}}
 {{/has_samples}}

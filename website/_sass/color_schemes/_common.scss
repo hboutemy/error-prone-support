@@ -6,3 +6,9 @@ footer {
         display: block;
     }
 }
+
+// Add support for external anchor icons.
+.external > svg {
+    width: 1rem;
+    vertical-align: text-bottom;
+}
