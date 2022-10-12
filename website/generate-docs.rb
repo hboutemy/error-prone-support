@@ -65,9 +65,9 @@ File.write("index.md", Mustache.render(File.read("index.mustache"), homepage))
 
 # XXX: Rename variable, it is confusing. It is a collection of all file paths for Bug Patterns and Refaster Rules.
 patterns = retrieve_patterns(generated_json_files_path)
-FileUtils.rm_r(bug_pattern_path)
+FileUtils.remove_dir(bug_pattern_path) if File.directory?(bug_pattern_path)
 FileUtils.mkdir_p(bug_pattern_path)
-FileUtils.rm_r(refaster_rules_path)
+FileUtils.remove_dir(refaster_rules_path) if File.directory?(refaster_rules_path)
 FileUtils.mkdir_p(refaster_rules_path)
 
 puts 'Generating bug patterns pages...'
