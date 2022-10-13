@@ -35,6 +35,9 @@ callouts:
   summary:
     title: Summary
     color: blue
+  suppression:
+    title: Suppression
+    color: grey-dk
 
 # SEO configuration.
 # See https://jekyll.github.io/jekyll-seo-tag/usage.
