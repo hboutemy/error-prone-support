@@ -3,7 +3,8 @@ title: Error Prone Support
 logo: assets/images/favicon.svg
 url: https://error-prone.picnic.tech
 description: >-
-  Error Prone extensions: extra bug checkers and a large battery of Refaster rules.
+  Error Prone extensions: extra bug checkers and a large battery of Refaster
+  rules.
 
 theme: just-the-docs
 plugins:
@@ -17,7 +18,6 @@ exclude:
   - generate-docs.rb
   - README.md
   - vendor
-  
 
 # See https://jekyllrb.com/docs/permalinks/#built-in-formats.
 permalink: pretty
@@ -26,6 +26,7 @@ permalink: pretty
 defaults:
   - scope:
       path: ""
+      type: "posts"
     values:
       layout: default
       image: /assets/images/android-chrome-512x512.png
