@@ -22,15 +22,6 @@ exclude:
 # See https://jekyllrb.com/docs/permalinks/#built-in-formats.
 permalink: pretty
 
-# See https://jekyllrb.com/docs/configuration/front-matter-defaults.
-defaults:
-  - scope:
-      path: ""
-      type: "posts"
-    values:
-      layout: default
-      image: /assets/images/android-chrome-512x512.png
-
 # Theme (just-the-docs) configuration.
 # See
 # https://just-the-docs.github.io/just-the-docs/docs/navigation-structure/#external-navigation-links.
