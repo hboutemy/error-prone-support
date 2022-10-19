@@ -180,6 +180,36 @@ final class JUnitValueSourceTest {
   }
 
   @Test
+  void identificationConstantValues() {
+    compilationTestHelper
+        .addSourceLines(
+            "A.java",
+            "import static org.assertj.core.api.Assertions.assertThat;",
+            "import static org.junit.jupiter.params.provider.Arguments.arguments;",
+            "",
+            "import java.util.stream.Stream;",
+            "import org.junit.jupiter.params.ParameterizedTest;",
+            "import org.junit.jupiter.params.provider.Arguments;",
+            "import org.junit.jupiter.params.provider.MethodSource;",
+            "",
+            "class A {",
+            "  private static final int MAGIC = 42;",
+            "",
+            "  @ParameterizedTest",
+            "  @MethodSource(\"fooTestCases\")",
+            "  // BUG: Diagnostic contains:",
+            "  void foo(int foo) {",
+            "    assertThat(foo).isNotNull();",
+            "  }",
+            "",
+            "  private static Stream<Arguments> fooTestCases() {",
+            "    return Stream.of(arguments(MAGIC), arguments(2));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
   void replacement() {
     refactoringTestHelper
         .addInputLines(
