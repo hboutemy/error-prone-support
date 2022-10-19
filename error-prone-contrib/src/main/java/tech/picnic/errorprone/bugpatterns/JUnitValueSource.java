@@ -88,16 +88,16 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .rhs.type.stringValue();
     MethodTree factoryMethod = getFactoryMethod(factoryMethodName, state);
 
-    Optional<MethodInvocationTree> methodInvocationTree =
+    Optional<MethodInvocationTree> factoryMethodReturnTree =
         getReturnTreeExpression(factoryMethod)
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .filter(m -> STREAM_OF_ARGUMENTS.matches(m, state));
-    if (methodInvocationTree.isEmpty()) {
+            .filter(method -> STREAM_OF_ARGUMENTS.matches(method, state));
+    if (factoryMethodReturnTree.isEmpty()) {
       return Description.NO_MATCH;
     }
 
-    if (!methodInvocationTree.orElseThrow().getArguments().stream()
+    if (!factoryMethodReturnTree.orElseThrow().getArguments().stream()
         .filter(MethodInvocationTree.class::isInstance)
         .map(MethodInvocationTree.class::cast)
         .allMatch(argumentsMethod -> allArgumentsAreConstant(argumentsMethod.getArguments()))) {
@@ -105,7 +105,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     }
 
     ImmutableList<String> arguments =
-        methodInvocationTree.orElseThrow().getArguments().stream()
+        factoryMethodReturnTree.orElseThrow().getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
             .map(invocation -> collectValuesFromArgumentsMethod(invocation, state))
@@ -119,7 +119,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                 methodSourceAnnotation,
                 String.format(
                     "@ValueSource(%s = {%s})",
-                    getAnnotationParameterName(parameterType.tsym.name.toString()),
+                    toValueSourceAttribute(parameterType.tsym.name.toString()),
                     String.join(", ", arguments)))
             .delete(factoryMethod)
             .build());
@@ -142,8 +142,8 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .orElseThrow();
   }
 
-  private static String getAnnotationParameterName(String typeName) {
-    switch (typeName) {
+  private static String toValueSourceAttribute(String type) {
+    switch (type) {
       case "Class":
         return "classes";
       case "Character":
@@ -151,7 +151,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       case "Integer":
         return "ints";
       default:
-        return typeName.toLowerCase() + "s";
+        return type.toLowerCase() + "s";
     }
   }
 
@@ -159,11 +159,10 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     return arguments.stream()
         .allMatch(
             tree -> {
-              // XXX: Class literals don't have a constant value, but CAN be used in annotations
-              if (tree.getKind() == Tree.Kind.MEMBER_SELECT) {
-                return ((MemberSelectTree) tree).getIdentifier().contentEquals("class");
-              }
-              return ASTHelpers.constValue(tree) != null;
+              /* Class literals don't have a constant value, but *can* be used in annotations. */
+              return tree.getKind() == Tree.Kind.MEMBER_SELECT
+                  ? ((MemberSelectTree) tree).getIdentifier().contentEquals("class")
+                  : ASTHelpers.constValue(tree) != null;
             });
   }
 
