@@ -49,6 +49,7 @@ public final class JUnitClassDeclaration extends BugChecker implements ClassTree
               hasMetaAnnotation("org.junit.jupiter.api.TestTemplate")));
   private static final Matcher<ClassTree> NOT_FINAL_TEST_CLASS =
       allOf(
+          not(hasMetaAnnotation("org.springframework.context.annotation.Configuration")),
           hasMethod(TEST_METHOD),
           anyOf(
               not(hasModifier(Modifier.FINAL)),

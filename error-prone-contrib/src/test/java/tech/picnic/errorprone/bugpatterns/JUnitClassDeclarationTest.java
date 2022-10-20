@@ -49,6 +49,16 @@ final class JUnitClassDeclarationTest {
             "  @Test",
             "  void foo() {}",
             "}")
+        .addSourceLines(
+            "E.java",
+            "import org.junit.jupiter.api.Test;",
+            "import org.springframework.context.annotation.Configuration;",
+            "",
+            "@Configuration",
+            "final class E {",
+            "  @Test",
+            "  void foo() {}",
+            "}")
         .doTest();
   }
 
