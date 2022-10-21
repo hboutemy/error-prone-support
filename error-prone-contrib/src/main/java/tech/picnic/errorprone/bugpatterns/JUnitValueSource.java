@@ -88,11 +88,12 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     MethodTree factoryMethod = getFactoryMethod(factoryMethodName, state);
 
     Optional<String> valueSourceAttributeValue =
-        getReturnTreeExpression(factoryMethod)
+        getReturnTree(factoryMethod)
+            .map(ReturnTree::getExpression)
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .filter(method -> STREAM_OF_ARGUMENTS.matches(method, state))
-            .flatMap(m -> extractValueFromArgumentBody(state, m));
+            .filter(m -> STREAM_OF_ARGUMENTS.matches(m, state))
+            .flatMap(m -> extractArgumentsFromStream(m, state));
 
     return valueSourceAttributeValue.map(
         attributeValue ->
@@ -107,12 +108,11 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                 .build());
   }
 
-  private static Optional<ExpressionTree> getReturnTreeExpression(MethodTree methodTree) {
+  private static Optional<ReturnTree> getReturnTree(MethodTree methodTree) {
     return methodTree.getBody().getStatements().stream()
         .filter(ReturnTree.class::isInstance)
         .findFirst()
-        .map(ReturnTree.class::cast)
-        .map(ReturnTree::getExpression);
+        .map(ReturnTree.class::cast);
   }
 
   private static String extractFactoryMethodName(AnnotationTree methodSourceAnnotation) {
@@ -131,8 +131,8 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .orElseThrow();
   }
 
-  private static Optional<String> extractValueFromArgumentBody(
-      VisitorState state, MethodInvocationTree tree) {
+  private static Optional<String> extractArgumentsFromStream(
+      MethodInvocationTree tree, VisitorState state) {
     ImmutableList<String> args =
         tree.getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
