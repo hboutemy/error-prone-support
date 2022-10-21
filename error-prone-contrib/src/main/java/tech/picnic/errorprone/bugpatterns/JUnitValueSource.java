@@ -1,7 +1,7 @@
 package tech.picnic.errorprone.bugpatterns;
 
 import static com.google.auto.common.MoreStreams.toImmutableList;
-import static com.google.errorprone.BugPattern.LinkType.NONE;
+import static com.google.errorprone.BugPattern.LinkType.CUSTOM;
 import static com.google.errorprone.BugPattern.SeverityLevel.SUGGESTION;
 import static com.google.errorprone.BugPattern.StandardTags.SIMPLIFICATION;
 import static com.google.errorprone.matchers.ChildMultiMatcher.MatchType.AT_LEAST_ONE;
@@ -14,6 +14,7 @@ import static com.google.errorprone.matchers.Matchers.isType;
 import static com.google.errorprone.matchers.Matchers.methodHasParameters;
 import static com.google.errorprone.matchers.Matchers.staticMethod;
 import static java.util.stream.Collectors.joining;
+import static tech.picnic.errorprone.bugpatterns.util.Documentation.BUG_PATTERNS_BASE_URL;
 
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableList;
@@ -22,6 +23,7 @@ import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
 import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
+import com.google.errorprone.fixes.Fix;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
@@ -42,14 +44,15 @@ import java.util.stream.Stream;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
 
 /**
- * A {@link BugChecker} which flags JUnit tests with {@link
+ * A {@link BugChecker} that flags JUnit tests with {@link
  * org.junit.jupiter.params.provider.MethodSource} that can be written as a {@link
  * org.junit.jupiter.params.provider.ValueSource}.
  */
 @AutoService(BugChecker.class)
 @BugPattern(
     summary = "Prefer `@ValueSource` over a `@MethodSource` that contains only a single argument",
-    linkType = NONE,
+    linkType = CUSTOM,
+    link = BUG_PATTERNS_BASE_URL + "JUnitValueSource",
     severity = SUGGESTION,
     tags = SIMPLIFICATION)
 public final class JUnitValueSource extends BugChecker implements MethodTreeMatcher {
@@ -75,14 +78,13 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     AnnotationTree annotationTree =
         ASTHelpers.getAnnotationWithSimpleName(
             tree.getModifiers().getAnnotations(), "MethodSource");
-    return tryConstructValueSourceFix(tree, type, annotationTree, state);
+    Optional<Fix> fix = tryConstructValueSourceFix(type, annotationTree, state);
+
+    return fix.isPresent() ? describeMatch(tree, fix.orElseThrow()) : Description.NO_MATCH;
   }
 
-  private Description tryConstructValueSourceFix(
-      MethodTree methodTree,
-      Type parameterType,
-      AnnotationTree methodSourceAnnotation,
-      VisitorState state) {
+  private static Optional<Fix> tryConstructValueSourceFix(
+      Type parameterType, AnnotationTree methodSourceAnnotation, VisitorState state) {
     String factoryMethodName =
         ((JCAssign) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
             .rhs.type.stringValue();
@@ -94,14 +96,14 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .map(MethodInvocationTree.class::cast)
             .filter(method -> STREAM_OF_ARGUMENTS.matches(method, state));
     if (factoryMethodReturnTree.isEmpty()) {
-      return Description.NO_MATCH;
+      return Optional.empty();
     }
 
     if (!factoryMethodReturnTree.orElseThrow().getArguments().stream()
         .filter(MethodInvocationTree.class::isInstance)
         .map(MethodInvocationTree.class::cast)
         .allMatch(argumentsMethod -> allArgumentsAreConstant(argumentsMethod.getArguments()))) {
-      return Description.NO_MATCH;
+      return Optional.empty();
     }
 
     ImmutableList<String> arguments =
@@ -111,8 +113,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
             .map(invocation -> collectValuesFromArgumentsMethod(invocation, state))
             .collect(toImmutableList());
 
-    return describeMatch(
-        methodTree,
+    return Optional.of(
         SuggestedFix.builder()
             .addImport("org.junit.jupiter.params.provider.ValueSource")
             .replace(
