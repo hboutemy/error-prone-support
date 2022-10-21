@@ -11,6 +11,8 @@ final class JUnitValueSourceTest {
   private final BugCheckerRefactoringTestHelper refactoringTestHelper =
       BugCheckerRefactoringTestHelper.newInstance(JUnitValueSource.class, getClass());
 
+  // XXX: Add a test case for when a factory is used by more than one test.
+
   @Test
   void identificationChar() {
     compilationTestHelper

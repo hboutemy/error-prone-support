@@ -48,7 +48,8 @@ import tech.picnic.errorprone.bugpatterns.util.SourceCode;
  */
 @AutoService(BugChecker.class)
 @BugPattern(
-    summary = "Prefer `@ValueSource` over a `@MethodSource` that contains only a single argument",
+    summary =
+        "Prefer `@ValueSource` over a `@MethodSource` that contains only one type of arguments",
     linkType = CUSTOM,
     link = BUG_PATTERNS_BASE_URL + "JUnitValueSource",
     severity = SUGGESTION,
@@ -81,7 +82,6 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     return fix.isPresent() ? describeMatch(tree, fix.orElseThrow()) : Description.NO_MATCH;
   }
 
-  // XXX: Multiple factories.
   private static Optional<Fix> tryConstructValueSourceFix(
       Type parameterType, AnnotationTree methodSourceAnnotation, VisitorState state) {
     String factoryMethodName = extractFactoryMethodName(methodSourceAnnotation);
@@ -102,34 +102,9 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
                     methodSourceAnnotation,
                     String.format(
                         "@ValueSource(%s = {%s})",
-                        toValueSourceAttributeName(parameterType.tsym.name.toString()),
-                        attributeValue))
+                        toValueSourceAttributeName(parameterType.toString()), attributeValue))
                 .delete(factoryMethod)
                 .build());
-  }
-
-  private static String extractFactoryMethodName(AnnotationTree methodSourceAnnotation) {
-    ExpressionTree expression =
-        ((AssignmentTree) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
-            .getExpression();
-    return ASTHelpers.getType(expression).stringValue();
-  }
-
-  private static Optional<String> extractValueFromArgumentBody(
-      VisitorState state, MethodInvocationTree m) {
-    ImmutableList<String> args =
-        m.getArguments().stream()
-            .filter(MethodInvocationTree.class::isInstance)
-            .map(MethodInvocationTree.class::cast)
-            .flatMap(mit -> mit.getArguments().stream())
-            .filter(JUnitValueSource::isCompileTimeConstant)
-            .map(argument -> SourceCode.treeToString(argument, state))
-            .collect(toImmutableList());
-
-    if (args.size() != m.getArguments().size()) {
-      return Optional.empty();
-    }
-    return Optional.of(String.join(", ", args));
   }
 
   private static Optional<ExpressionTree> getReturnTreeExpression(MethodTree methodTree) {
@@ -140,6 +115,13 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .map(ReturnTree::getExpression);
   }
 
+  private static String extractFactoryMethodName(AnnotationTree methodSourceAnnotation) {
+    ExpressionTree expression =
+        ((AssignmentTree) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
+            .getExpression();
+    return ASTHelpers.getType(expression).stringValue();
+  }
+
   private static MethodTree getFactoryMethod(String factoryMethodName, VisitorState state) {
     return state.findEnclosing(ClassTree.class).getMembers().stream()
         .filter(MethodTree.class::isInstance)
@@ -147,6 +129,24 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .filter(method -> method.getName().contentEquals(factoryMethodName))
         .findFirst()
         .orElseThrow();
+  }
+
+  private static Optional<String> extractValueFromArgumentBody(
+      VisitorState state, MethodInvocationTree tree) {
+    ImmutableList<String> args =
+        tree.getArguments().stream()
+            .filter(MethodInvocationTree.class::isInstance)
+            .map(MethodInvocationTree.class::cast)
+            .flatMap(mit -> mit.getArguments().stream())
+            .filter(JUnitValueSource::isCompileTimeConstant)
+            .map(argument -> SourceCode.treeToString(argument, state))
+            .collect(toImmutableList());
+
+    /* Not all values are compile-time constants. */
+    if (args.size() != tree.getArguments().size()) {
+      return Optional.empty();
+    }
+    return Optional.of(String.join(", ", args));
   }
 
   private static String toValueSourceAttributeName(String type) {
