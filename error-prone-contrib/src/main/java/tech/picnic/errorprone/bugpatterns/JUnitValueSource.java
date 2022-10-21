@@ -13,7 +13,6 @@ import static com.google.errorprone.matchers.Matchers.isSameType;
 import static com.google.errorprone.matchers.Matchers.isType;
 import static com.google.errorprone.matchers.Matchers.methodHasParameters;
 import static com.google.errorprone.matchers.Matchers.staticMethod;
-import static java.util.stream.Collectors.joining;
 import static tech.picnic.errorprone.bugpatterns.util.Documentation.BUG_PATTERNS_BASE_URL;
 
 import com.google.auto.service.AutoService;
@@ -29,6 +28,7 @@ import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MemberSelectTree;
@@ -37,8 +37,6 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import tech.picnic.errorprone.bugpatterns.util.SourceCode;
@@ -74,56 +72,64 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
       return Description.NO_MATCH;
     }
 
-    Type type = ASTHelpers.getType(Iterables.getOnlyElement(tree.getParameters()));
+    Type parameterType = ASTHelpers.getType(Iterables.getOnlyElement(tree.getParameters()));
     AnnotationTree annotationTree =
         ASTHelpers.getAnnotationWithSimpleName(
             tree.getModifiers().getAnnotations(), "MethodSource");
-    Optional<Fix> fix = tryConstructValueSourceFix(type, annotationTree, state);
+    Optional<Fix> fix = tryConstructValueSourceFix(parameterType, annotationTree, state);
 
     return fix.isPresent() ? describeMatch(tree, fix.orElseThrow()) : Description.NO_MATCH;
   }
 
+  // XXX: Multiple factories.
   private static Optional<Fix> tryConstructValueSourceFix(
       Type parameterType, AnnotationTree methodSourceAnnotation, VisitorState state) {
-    String factoryMethodName =
-        ((JCAssign) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
-            .rhs.type.stringValue();
+    String factoryMethodName = extractFactoryMethodName(methodSourceAnnotation);
     MethodTree factoryMethod = getFactoryMethod(factoryMethodName, state);
 
-    Optional<MethodInvocationTree> factoryMethodReturnTree =
+    Optional<String> valueSourceAttributeValue =
         getReturnTreeExpression(factoryMethod)
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .filter(method -> STREAM_OF_ARGUMENTS.matches(method, state));
-    if (factoryMethodReturnTree.isEmpty()) {
-      return Optional.empty();
-    }
+            .filter(method -> STREAM_OF_ARGUMENTS.matches(method, state))
+            .flatMap(m -> extractValueFromArgumentBody(state, m));
 
-    if (!factoryMethodReturnTree.orElseThrow().getArguments().stream()
-        .filter(MethodInvocationTree.class::isInstance)
-        .map(MethodInvocationTree.class::cast)
-        .allMatch(argumentsMethod -> allArgumentsAreConstant(argumentsMethod.getArguments()))) {
-      return Optional.empty();
-    }
+    return valueSourceAttributeValue.map(
+        attributeValue ->
+            SuggestedFix.builder()
+                .addImport("org.junit.jupiter.params.provider.ValueSource")
+                .replace(
+                    methodSourceAnnotation,
+                    String.format(
+                        "@ValueSource(%s = {%s})",
+                        toValueSourceAttributeName(parameterType.tsym.name.toString()),
+                        attributeValue))
+                .delete(factoryMethod)
+                .build());
+  }
 
-    ImmutableList<String> arguments =
-        factoryMethodReturnTree.orElseThrow().getArguments().stream()
+  private static String extractFactoryMethodName(AnnotationTree methodSourceAnnotation) {
+    ExpressionTree expression =
+        ((AssignmentTree) Iterables.getOnlyElement(methodSourceAnnotation.getArguments()))
+            .getExpression();
+    return ASTHelpers.getType(expression).stringValue();
+  }
+
+  private static Optional<String> extractValueFromArgumentBody(
+      VisitorState state, MethodInvocationTree m) {
+    ImmutableList<String> args =
+        m.getArguments().stream()
             .filter(MethodInvocationTree.class::isInstance)
             .map(MethodInvocationTree.class::cast)
-            .map(invocation -> collectValuesFromArgumentsMethod(invocation, state))
+            .flatMap(mit -> mit.getArguments().stream())
+            .filter(JUnitValueSource::isCompileTimeConstant)
+            .map(argument -> SourceCode.treeToString(argument, state))
             .collect(toImmutableList());
 
-    return Optional.of(
-        SuggestedFix.builder()
-            .addImport("org.junit.jupiter.params.provider.ValueSource")
-            .replace(
-                methodSourceAnnotation,
-                String.format(
-                    "@ValueSource(%s = {%s})",
-                    toValueSourceAttribute(parameterType.tsym.name.toString()),
-                    String.join(", ", arguments)))
-            .delete(factoryMethod)
-            .build());
+    if (args.size() != m.getArguments().size()) {
+      return Optional.empty();
+    }
+    return Optional.of(String.join(", ", args));
   }
 
   private static Optional<ExpressionTree> getReturnTreeExpression(MethodTree methodTree) {
@@ -143,7 +149,7 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
         .orElseThrow();
   }
 
-  private static String toValueSourceAttribute(String type) {
+  private static String toValueSourceAttributeName(String type) {
     switch (type) {
       case "Class":
         return "classes";
@@ -156,21 +162,9 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
     }
   }
 
-  private static boolean allArgumentsAreConstant(List<? extends ExpressionTree> arguments) {
-    return arguments.stream()
-        .allMatch(
-            tree -> {
-              /* Class literals don't have a constant value, but *can* be used in annotations. */
-              return tree.getKind() == Tree.Kind.MEMBER_SELECT
-                  ? ((MemberSelectTree) tree).getIdentifier().contentEquals("class")
-                  : ASTHelpers.constValue(tree) != null;
-            });
-  }
-
-  private static String collectValuesFromArgumentsMethod(
-      MethodInvocationTree tree, VisitorState state) {
-    return tree.getArguments().stream()
-        .map(expression -> SourceCode.treeToString(expression, state))
-        .collect(joining(", "));
+  private static boolean isCompileTimeConstant(ExpressionTree argument) {
+    return argument.getKind() == Tree.Kind.MEMBER_SELECT
+        ? ((MemberSelectTree) argument).getIdentifier().contentEquals("class")
+        : ASTHelpers.constValue(argument) != null;
   }
 }
