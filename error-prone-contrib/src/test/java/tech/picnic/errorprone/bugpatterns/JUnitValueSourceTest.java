@@ -11,8 +11,6 @@ final class JUnitValueSourceTest {
   private final BugCheckerRefactoringTestHelper refactoringTestHelper =
       BugCheckerRefactoringTestHelper.newInstance(JUnitValueSource.class, getClass());
 
-  // XXX: Add a test case for when a factory is used by more than one test.
-
   @Test
   void identificationChar() {
     compilationTestHelper
@@ -182,7 +180,38 @@ final class JUnitValueSourceTest {
   }
 
   @Test
-  void identificationConstantValues() {
+  void identificationDontFlagForMultipleFactories() {
+    compilationTestHelper
+        .addSourceLines(
+            "A.java",
+            "import static org.assertj.core.api.Assertions.assertThat;",
+            "import static org.junit.jupiter.params.provider.Arguments.arguments;",
+            "",
+            "import java.util.stream.Stream;",
+            "import org.junit.jupiter.params.ParameterizedTest;",
+            "import org.junit.jupiter.params.provider.Arguments;",
+            "import org.junit.jupiter.params.provider.MethodSource;",
+            "",
+            "class A {",
+            "  @ParameterizedTest",
+            "  @MethodSource({\"fooTestCases\", \"barTestCases\"})",
+            "  void foo(int i) {",
+            "    assertThat(i).isNotNull();",
+            "  }",
+            "",
+            "  private static Stream<Arguments> fooTestCases() {",
+            "    return Stream.of(arguments(1));",
+            "  }",
+            "",
+            "  private static Stream<Arguments> barTestCases() {",
+            "    return Stream.of(arguments(1));",
+            "  }",
+            "}")
+        .doTest();
+  }
+
+  @Test
+  void identificationOnlyConstantValues() {
     compilationTestHelper
         .addSourceLines(
             "A.java",
