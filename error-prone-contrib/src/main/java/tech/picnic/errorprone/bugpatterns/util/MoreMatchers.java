@@ -6,24 +6,18 @@ import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Symbol;
 
-/**
- * A collection of extra static factory methods to make the {@link Matcher} DSL read more fluently.
- */
+/** A collection of methods to enhance the use of {@link Matcher}s. */
 public final class MoreMatchers {
   private MoreMatchers() {}
-
-  private static TypePredicate hasAnnotation(String annotationClassName) {
-    return (type, state) -> ASTHelpers.hasAnnotation(type.tsym, annotationClassName, state);
-  }
 
   /**
    * Determines whether an expression has a meta annotation of the given class name. This includes
    * annotations inherited from superclasses due to @Inherited.
    *
-   * @param <T> the type of the expression tree
-   * @param annotationClass the binary class name of the annotation (e.g.
-   *     "javax.annotation.Nullable", or "some.package.OuterClassName$InnerClassName")
-   * @return a {@link Matcher} that matches expressions with the specified meta annotation
+   * @param <T> The type of the expression tree.
+   * @param annotationClass The binary class name of the annotation (e.g. "
+   *     org.jspecify.nullness.Nullable", or "some.package.OuterClassName$InnerClassName")
+   * @return A {@link Matcher} that matches expressions with the specified meta annotation.
    */
   public static <T extends Tree> Matcher<T> hasMetaAnnotation(String annotationClass) {
     TypePredicate typePredicate = hasAnnotation(annotationClass);
@@ -31,5 +25,9 @@ public final class MoreMatchers {
       Symbol sym = ASTHelpers.getSymbol(tree);
       return sym != null && typePredicate.apply(sym.type, state);
     };
+  }
+
+  private static TypePredicate hasAnnotation(String annotationClassName) {
+    return (type, state) -> ASTHelpers.hasAnnotation(type.tsym, annotationClassName, state);
   }
 }
