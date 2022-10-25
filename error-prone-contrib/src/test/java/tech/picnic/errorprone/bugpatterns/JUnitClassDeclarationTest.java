@@ -59,6 +59,19 @@ final class JUnitClassDeclarationTest {
             "  @Test",
             "  void foo() {}",
             "}")
+        .addSourceLines(
+            "F.java",
+            "import org.junit.jupiter.api.Nested;",
+            "import org.junit.jupiter.api.Test;",
+            "",
+            "class F {",
+            "  @Nested",
+            "  // BUG: Diagnostic contains:",
+            "  class A {",
+            "    @Test",
+            "    void foo() {}",
+            "  }",
+            "}")
         .doTest();
   }
 
