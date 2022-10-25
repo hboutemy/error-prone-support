@@ -24,6 +24,13 @@ parent: Refaster Rules
     </svg>
 </a>
 
+{: .note-title }
+> Suppression
+>
+{{! XXX: Create an internal page on documenting the usage of compiler flags. }}
+> Disable all rules by adding `-XepOpt:Refaster:NamePattern=^(?!({{collection_name}}.*))` as 
+> compiler argument.
+
 <details open markdown="block">
   <summary>
     Table of contents
@@ -50,6 +57,10 @@ parent: Refaster Rules
 >
 > Suppress false positives by adding the suppression annotation `@SuppressWarnings("{{rule_name}}")` to 
 > the enclosing element.
+>
+{{! XXX: Create an internal page on documenting the usage of compiler flags. }}
+> Disable this rule by adding `-XepOpt:Refaster:NamePattern=^(?!({{collection_name}}\.{{rule_name}}))` 
+> as compiler argument.
 
 ### Samples
 {: .no_toc .text-delta }
