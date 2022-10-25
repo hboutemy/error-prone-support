@@ -31,7 +31,7 @@ import com.sun.source.tree.MethodTree;
 import javax.lang.model.element.Modifier;
 
 /**
- * A {@link BugChecker} which flags non-final or non package-private JUnit test class declarations
+ * A {@link BugChecker} that flags non-final and non package-private JUnit test class declarations.
  */
 @AutoService(BugChecker.class)
 @BugPattern(
@@ -42,8 +42,6 @@ import javax.lang.model.element.Modifier;
     tags = FRAGILE_CODE)
 public final class JUnitClassDeclaration extends BugChecker implements ClassTreeMatcher {
   private static final long serialVersionUID = 1L;
-  private static final ImmutableSet<Modifier> ILLEGAL_MODIFIERS =
-      ImmutableSet.of(Modifier.PRIVATE, Modifier.PROTECTED, Modifier.PUBLIC);
   private static final MultiMatcher<MethodTree, AnnotationTree> TEST_METHOD =
       annotations(
           AT_LEAST_ONE,
@@ -68,7 +66,10 @@ public final class JUnitClassDeclaration extends BugChecker implements ClassTree
 
     SuggestedFix.Builder fixBuilder = SuggestedFix.builder();
     SuggestedFixes.addModifiers(tree, state, Modifier.FINAL).ifPresent(fixBuilder::merge);
-    SuggestedFixes.removeModifiers(tree.getModifiers(), state, ILLEGAL_MODIFIERS)
+    SuggestedFixes.removeModifiers(
+            tree.getModifiers(),
+            state,
+            ImmutableSet.of(Modifier.PRIVATE, Modifier.PROTECTED, Modifier.PUBLIC))
         .ifPresent(fixBuilder::merge);
 
     return describeMatch(tree, fixBuilder.build());
