@@ -30,7 +30,9 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import javax.lang.model.element.Modifier;
 
-/** A {@link BugChecker} which flags non-final JUnit test class declarations. */
+/**
+ * A {@link BugChecker} which flags non-final or non package-private JUnit test class declarations
+ */
 @AutoService(BugChecker.class)
 @BugPattern(
     summary = "JUnit test classes should be declared as package private final",

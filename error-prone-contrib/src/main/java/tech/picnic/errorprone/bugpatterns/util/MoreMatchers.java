@@ -27,6 +27,7 @@ public final class MoreMatchers {
     };
   }
 
+  // XXX: Consider moving to a `MoreTypePredicates` utility class.
   private static TypePredicate hasAnnotation(String annotationClassName) {
     return (type, state) -> ASTHelpers.hasAnnotation(type.tsym, annotationClassName, state);
   }
