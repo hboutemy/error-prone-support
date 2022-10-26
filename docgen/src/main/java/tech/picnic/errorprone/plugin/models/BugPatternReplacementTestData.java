@@ -1,7 +1,7 @@
 package tech.picnic.errorprone.plugin.models;
 
 import com.google.auto.value.AutoValue;
-import javax.annotation.Nullable;
+import org.jspecify.nullness.Nullable;
 
 @AutoValue
 public abstract class BugPatternReplacementTestData {
