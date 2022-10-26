@@ -1,4 +1,4 @@
-package tech.picnic.errorprone.refasterrules;
+package tech.picnic.errorprone.refasterrules.output;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;

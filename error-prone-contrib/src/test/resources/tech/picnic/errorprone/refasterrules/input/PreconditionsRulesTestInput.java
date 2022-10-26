@@ -1,4 +1,4 @@
-package tech.picnic.errorprone.refasterrules;
+package tech.picnic.errorprone.refasterrules.input;
 
 import tech.picnic.errorprone.refaster.test.RefasterRuleCollectionTestCase;
 
