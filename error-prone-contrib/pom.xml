@@ -221,8 +221,6 @@
                         </annotationProcessorPaths>
                         <compilerArgs combine.children="append">
                             <arg>-Xplugin:RefasterRuleCompiler</arg>
-                            <arg>--add-exports</arg>
-                            <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
                         </compilerArgs>
                     </configuration>
                 </plugin>
