@@ -11,6 +11,11 @@ import static com.google.errorprone.matchers.Matchers.anyOf;
 import static com.google.errorprone.matchers.Matchers.enclosingClass;
 import static com.google.errorprone.matchers.Matchers.hasModifier;
 import static com.google.errorprone.matchers.Matchers.isType;
+import static com.google.errorprone.matchers.Matchers.not;
+import static java.util.stream.Collectors.joining;
+import static javax.lang.model.element.Modifier.ABSTRACT;
+import static javax.lang.model.element.Modifier.FINAL;
+import static javax.lang.model.element.Modifier.PRIVATE;
 import static tech.picnic.errorprone.bugpatterns.util.ConflictDetection.findMethodRenameBlocker;
 import static tech.picnic.errorprone.bugpatterns.util.Documentation.BUG_PATTERNS_BASE_URL;
 import static tech.picnic.errorprone.bugpatterns.util.JUnit.HAS_METHOD_SOURCE;
@@ -27,7 +32,6 @@ import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.fixes.SuggestedFixes;
 import com.google.errorprone.matchers.Description;
 import com.google.errorprone.matchers.Matcher;
-import com.google.errorprone.matchers.Matchers;
 import com.google.errorprone.util.ASTHelpers;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
@@ -39,9 +43,7 @@ import com.sun.tools.javac.parser.Tokens;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.lang.model.element.Modifier;
 import tech.picnic.errorprone.bugpatterns.util.JUnit;
 import tech.picnic.errorprone.bugpatterns.util.MoreASTHelpers;
 
@@ -67,9 +69,9 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
       anyOf(
           annotations(AT_LEAST_ONE, isType("java.lang.Override")),
           allOf(
-              Matchers.not(hasModifier(Modifier.FINAL)),
-              Matchers.not(hasModifier(Modifier.PRIVATE)),
-              enclosingClass(hasModifier(Modifier.ABSTRACT))));
+              not(hasModifier(FINAL)),
+              not(hasModifier(PRIVATE)),
+              enclosingClass(hasModifier(ABSTRACT))));
 
   /** Instantiates a new {@link JUnitFactoryMethodDeclaration} instance. */
   public JUnitFactoryMethodDeclaration() {}
@@ -100,7 +102,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
         Optional.ofNullable(state.findEnclosing(ClassTree.class))
             .map(
                 enclosingClass ->
-                    MoreASTHelpers.findMethods(enclosingClass, factoryMethodName.get()))
+                    MoreASTHelpers.findMethods(enclosingClass, factoryMethodName.orElseThrow()))
             .stream()
             .flatMap(Collection::stream)
             .filter(methodTree -> methodTree.getParameters().isEmpty())
@@ -116,7 +118,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
             tree,
             state,
             methodSourceAnnotation,
-            factoryMethodName.get(),
+            factoryMethodName.orElseThrow(),
             Iterables.getOnlyElement(factoryMethods));
 
     /* Even though we match on the test method, none of the fixes apply to it directly, so we report
@@ -150,7 +152,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
       AnnotationTree methodSourceAnnotation,
       String factoryMethodName,
       MethodTree factoryMethod) {
-    String expectedFactoryMethodName = tree.getName().toString() + "TestCases";
+    String expectedFactoryMethodName = tree.getName() + "TestCases";
 
     if (HAS_UNMODIFIABLE_SIGNATURE.matches(factoryMethod, state)
         || factoryMethodName.equals(expectedFactoryMethodName)) {
@@ -159,7 +161,8 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
 
     Optional<String> blocker = findMethodRenameBlocker(expectedFactoryMethodName, state);
     if (blocker.isPresent()) {
-      reportMethodRenameBlocker(factoryMethod, blocker.get(), expectedFactoryMethodName, state);
+      reportMethodRenameBlocker(
+          factoryMethod, blocker.orElseThrow(), expectedFactoryMethodName, state);
       return ImmutableList.of();
     } else {
       return ImmutableList.of(
@@ -199,22 +202,20 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
 
   private ImmutableList<Description> getReturnStatementCommentFixes(
       MethodTree testMethod, VisitorState state, MethodTree factoryMethod) {
-    List<String> parameterNames =
+    ImmutableList<String> parameterNames =
         testMethod.getParameters().stream()
             .map(VariableTree::getName)
             .map(Object::toString)
-            .collect(Collectors.toList());
+            .collect(toImmutableList());
 
-    String expectedComment =
-        parameterNames.stream().collect(Collectors.joining(", ", "/* { ", " } */"));
+    String expectedComment = parameterNames.stream().collect(joining(", ", "/* { ", " } */"));
 
     List<? extends StatementTree> statements = factoryMethod.getBody().getStatements();
 
     Stream<? extends StatementTree> returnStatementsNeedingComment =
         Streams.mapWithIndex(statements.stream(), IndexedStatement::new)
             .filter(
-                indexedStatement ->
-                    indexedStatement.getStatement().getKind().equals(Tree.Kind.RETURN))
+                indexedStatement -> indexedStatement.getStatement().getKind() == Tree.Kind.RETURN)
             .filter(
                 indexedStatement ->
                     !hasExpectedComment(
