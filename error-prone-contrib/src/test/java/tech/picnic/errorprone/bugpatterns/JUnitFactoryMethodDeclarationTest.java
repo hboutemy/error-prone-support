@@ -165,6 +165,22 @@ final class JUnitFactoryMethodDeclarationTest {
             "  // BUG: Diagnostic contains: The return statement should be prefixed by a comment giving the names of the test case parameters",
             "    return arguments.stream();",
             "  }",
+            "  ",
+            "  private static Stream<Arguments> method8TestCases() {",
+            "    /* { foo, bar, baz } */",
+            "    return Stream.of(",
+            "      arguments(1, true, \"A\"),",
+            "      arguments(2, false, \"B\")",
+            "    );",
+            "  }",
+            "  ",
+            "  @ParameterizedTest",
+            "  @MethodSource(\"method8TestCases\")",
+            "  void method8(",
+            "      int foo,",
+            "      boolean bar,",
+            "      String baz) {",
+            "  }",
             "}")
         .doTest();
   }

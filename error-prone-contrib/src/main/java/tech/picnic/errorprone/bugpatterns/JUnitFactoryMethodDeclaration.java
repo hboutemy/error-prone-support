@@ -218,7 +218,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
             .filter(
                 indexedStatement ->
                     !hasExpectedComment(
-                        testMethod,
+                        factoryMethod,
                         expectedComment,
                         statements,
                         indexedStatement.getIndex(),
@@ -237,7 +237,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
   }
 
   private static boolean hasExpectedComment(
-      MethodTree testMethod,
+      MethodTree factoryMethod,
       String expectedComment,
       List<? extends StatementTree> statements,
       long statementIndex,
@@ -245,7 +245,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
     int startPosition =
         statementIndex > 0
             ? state.getEndPosition(statements.get((int) statementIndex - 1))
-            : ASTHelpers.getStartPosition(testMethod);
+            : ASTHelpers.getStartPosition(factoryMethod);
     int endPosition = state.getEndPosition(statements.get((int) statementIndex));
 
     ImmutableList<Tokens.Comment> comments =
