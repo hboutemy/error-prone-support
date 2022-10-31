@@ -116,6 +116,9 @@ public final class JUnitValueSource extends BugChecker implements MethodTreeMatc
               isSameType(String.class),
               isSameType(state -> state.getSymtab().classType)));
 
+  /** Instantiates a new {@link JUnitValueSource} instance. */
+  public JUnitValueSource() {}
+
   @Override
   public Description matchMethod(MethodTree tree, VisitorState state) {
     if (!IS_UNARY_METHOD_WITH_SUPPORTED_PARAMETER.matches(tree, state)) {
