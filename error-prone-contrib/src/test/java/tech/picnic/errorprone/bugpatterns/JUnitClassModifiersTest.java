@@ -43,34 +43,40 @@ final class JUnitClassModifiersTest {
             "}")
         .addSourceLines(
             "D.java",
+            "import org.junit.jupiter.api.Nested;",
             "import org.junit.jupiter.api.Test;",
             "",
-            "final class D {",
-            "  @Test",
-            "  void foo() {}",
+            "class D {",
+            "  @Nested",
+            "  // BUG: Diagnostic contains:",
+            "  class Nested1 {",
+            "    @Test",
+            "    void foo() {}",
+            "  }",
+            "",
+            "  // BUG: Diagnostic contains:",
+            "  static class Nested2 {",
+            "    @Test",
+            "    void bar() {}",
+            "  }",
             "}")
         .addSourceLines(
             "E.java",
             "import org.junit.jupiter.api.Test;",
-            "import org.springframework.context.annotation.Configuration;",
             "",
-            "@Configuration",
             "final class E {",
             "  @Test",
             "  void foo() {}",
             "}")
         .addSourceLines(
             "F.java",
-            "import org.junit.jupiter.api.Nested;",
             "import org.junit.jupiter.api.Test;",
+            "import org.springframework.context.annotation.Configuration;",
             "",
-            "class F {",
-            "  @Nested",
-            "  // BUG: Diagnostic contains:",
-            "  class A {",
-            "    @Test",
-            "    void foo() {}",
-            "  }",
+            "@Configuration",
+            "final class F {",
+            "  @Test",
+            "  void foo() {}",
             "}")
         .doTest();
   }
@@ -85,6 +91,11 @@ final class JUnitClassModifiersTest {
             "public class A {",
             "  @Test",
             "  void foo() {}",
+            "",
+            "  private static class B {",
+            "    @Test",
+            "    void bar() {}",
+            "  }",
             "}")
         .addOutputLines(
             "A.java",
@@ -93,6 +104,11 @@ final class JUnitClassModifiersTest {
             "final class A {",
             "  @Test",
             "  void foo() {}",
+            "",
+            "  static final class B {",
+            "    @Test",
+            "    void bar() {}",
+            "  }",
             "}")
         .doTest(TestMode.TEXT_MATCH);
   }
