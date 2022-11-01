@@ -58,6 +58,9 @@ public final class JUnitClassModifiers extends BugChecker implements ClassTreeMa
               hasModifier(Modifier.PROTECTED),
               hasModifier(Modifier.PUBLIC)));
 
+  /** Instantiates a new {@link JUnitClassModifiers} instance. */
+  public JUnitClassModifiers() {}
+
   @Override
   public Description matchClass(ClassTree tree, VisitorState state) {
     if (!NON_FINAL_TEST_CLASS.matches(tree, state)) {
