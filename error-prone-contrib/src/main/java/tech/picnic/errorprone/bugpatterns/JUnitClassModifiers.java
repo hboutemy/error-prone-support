@@ -40,7 +40,7 @@ import javax.lang.model.element.Modifier;
     link = BUG_PATTERNS_BASE_URL + "JUnitClassDeclaration",
     severity = WARNING,
     tags = FRAGILE_CODE)
-public final class JUnitClassDeclaration extends BugChecker implements ClassTreeMatcher {
+public final class JUnitClassModifiers extends BugChecker implements ClassTreeMatcher {
   private static final long serialVersionUID = 1L;
   private static final MultiMatcher<MethodTree, AnnotationTree> TEST_METHOD =
       annotations(
