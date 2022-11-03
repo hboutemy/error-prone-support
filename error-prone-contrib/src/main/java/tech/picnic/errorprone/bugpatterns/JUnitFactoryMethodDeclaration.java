@@ -28,6 +28,7 @@ import com.google.common.collect.Streams;
 import com.google.errorprone.BugPattern;
 import com.google.errorprone.VisitorState;
 import com.google.errorprone.bugpatterns.BugChecker;
+import com.google.errorprone.bugpatterns.BugChecker.MethodTreeMatcher;
 import com.google.errorprone.fixes.SuggestedFix;
 import com.google.errorprone.fixes.SuggestedFixes;
 import com.google.errorprone.matchers.Description;
@@ -37,9 +38,10 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.StatementTree;
-import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
-import com.sun.tools.javac.parser.Tokens;
+import com.sun.tools.javac.parser.Tokens.Comment;
+import com.sun.tools.javac.parser.Tokens.TokenKind;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -61,8 +63,7 @@ import tech.picnic.errorprone.bugpatterns.util.MoreASTHelpers;
     linkType = CUSTOM,
     severity = SUGGESTION,
     tags = STYLE)
-public final class JUnitFactoryMethodDeclaration extends BugChecker
-    implements BugChecker.MethodTreeMatcher {
+public final class JUnitFactoryMethodDeclaration extends BugChecker implements MethodTreeMatcher {
   private static final long serialVersionUID = 1L;
 
   private static final Matcher<MethodTree> HAS_UNMODIFIABLE_SIGNATURE =
@@ -115,30 +116,24 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
 
     ImmutableList<Description> fixes =
         getSuggestedFixes(
-            tree,
-            state,
-            methodSourceAnnotation,
-            factoryMethodName.orElseThrow(),
-            Iterables.getOnlyElement(factoryMethods));
+            tree, methodSourceAnnotation, Iterables.getOnlyElement(factoryMethods), state);
 
     /* Even though we match on the test method, none of the fixes apply to it directly, so we report
-    the fixes separately using `VisitorState::reportMatch`, and return `Description.NO_MATCH`. */
+    the fixes separately using `VisitorState::reportMatch`. */
     fixes.forEach(state::reportMatch);
     return Description.NO_MATCH;
   }
 
   private ImmutableList<Description> getSuggestedFixes(
       MethodTree tree,
-      VisitorState state,
       AnnotationTree methodSourceAnnotation,
-      String factoryMethodName,
-      MethodTree factoryMethod) {
+      MethodTree factoryMethod,
+      VisitorState state) {
     ImmutableList<Description> factoryMethodNameFixes =
-        getFactoryMethodNameFixes(
-            tree, state, methodSourceAnnotation, factoryMethodName, factoryMethod);
+        getFactoryMethodNameFixes(tree, methodSourceAnnotation, factoryMethod, state);
 
     ImmutableList<Description> commentFixes =
-        getReturnStatementCommentFixes(tree, state, factoryMethod);
+        getReturnStatementCommentFixes(tree, factoryMethod, state);
 
     return ImmutableList.<Description>builder()
         .addAll(factoryMethodNameFixes)
@@ -148,14 +143,13 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
 
   private ImmutableList<Description> getFactoryMethodNameFixes(
       MethodTree tree,
-      VisitorState state,
       AnnotationTree methodSourceAnnotation,
-      String factoryMethodName,
-      MethodTree factoryMethod) {
+      MethodTree factoryMethod,
+      VisitorState state) {
     String expectedFactoryMethodName = tree.getName() + "TestCases";
 
     if (HAS_UNMODIFIABLE_SIGNATURE.matches(factoryMethod, state)
-        || factoryMethodName.equals(expectedFactoryMethodName)) {
+        || factoryMethod.getName().toString().equals(expectedFactoryMethodName)) {
       return ImmutableList.of();
     }
 
@@ -201,7 +195,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
   }
 
   private ImmutableList<Description> getReturnStatementCommentFixes(
-      MethodTree testMethod, VisitorState state, MethodTree factoryMethod) {
+      MethodTree testMethod, MethodTree factoryMethod, VisitorState state) {
     ImmutableList<String> parameterNames =
         testMethod.getParameters().stream()
             .map(VariableTree::getName)
@@ -214,8 +208,7 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
 
     Stream<? extends StatementTree> returnStatementsNeedingComment =
         Streams.mapWithIndex(statements.stream(), IndexedStatement::new)
-            .filter(
-                indexedStatement -> indexedStatement.getStatement().getKind() == Tree.Kind.RETURN)
+            .filter(indexedStatement -> indexedStatement.getStatement().getKind() == Kind.RETURN)
             .filter(
                 indexedStatement ->
                     !hasExpectedComment(
@@ -249,18 +242,18 @@ public final class JUnitFactoryMethodDeclaration extends BugChecker
             : ASTHelpers.getStartPosition(factoryMethod);
     int endPosition = state.getEndPosition(statements.get((int) statementIndex));
 
-    ImmutableList<Tokens.Comment> comments =
-        extractReturnStatementComments(state, startPosition, endPosition);
+    ImmutableList<Comment> comments =
+        extractReturnStatementComments(startPosition, endPosition, state);
 
     return comments.stream()
-        .map(Tokens.Comment::getText)
+        .map(Comment::getText)
         .anyMatch(comment -> comment.equals(expectedComment));
   }
 
-  private static ImmutableList<Tokens.Comment> extractReturnStatementComments(
-      VisitorState state, int startPosition, int endPosition) {
+  private static ImmutableList<Comment> extractReturnStatementComments(
+      int startPosition, int endPosition, VisitorState state) {
     return state.getOffsetTokens(startPosition, endPosition).stream()
-        .filter(t -> t.kind() == Tokens.TokenKind.RETURN)
+        .filter(t -> t.kind() == TokenKind.RETURN)
         .flatMap(errorProneToken -> errorProneToken.comments().stream())
         .collect(toImmutableList());
   }
